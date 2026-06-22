@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Админ-панель — TenderSearch</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    /* ── Admin Layout ──────────────────────────────────── */
+    .admin-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0;
+      flex-wrap: wrap;
+    }
+    .admin-tab {
+      padding: 10px 20px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+      transition: all var(--transition);
+      position: relative;
+      bottom: -1px;
+    }
+    .admin-tab:hover { color: var(--text-primary); background: var(--bg-tertiary); }
+    .admin-tab.active {
+      color: var(--accent-blue);
+      border-bottom: 2px solid var(--accent-blue);
+      background: transparent;
+    }
+    .admin-tab .icon { margin-right: 6px; }
+
+    .admin-tab-content { display: none; }
+    .admin-tab-content.active { display: block; }
+
+    /* ── User Search ───────────────────────────────────── */
+    .admin-toolbar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .admin-toolbar .search-input {
+      flex: 1;
+      min-width: 220px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      color: var(--text-primary);
+      font-size: 0.9rem;
+      outline: none;
+    }
+    .admin-toolbar .search-input:focus { border-color: var(--accent-blue); }
+    .admin-toolbar .search-input::placeholder { color: var(--text-muted); }
+
+    /* ── Table Actions ─────────────────────────────────── */
+    .table-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .btn-xs {
+      padding: 5px 10px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      border: none;
+      cursor: pointer;
+      transition: all var(--transition);
+      white-space: nowrap;
+    }
+    .btn-xs-primary { background: var(--accent-blue); color: #fff; }
+    .btn-xs-primary:hover { background: #2563eb; }
+    .btn-xs-danger { background: var(--accent-red); color: #fff; }
+    .btn-xs-danger:hover { background: #dc2626; }
+    .btn-xs-success { background: var(--accent-green); color: #000; }
+    .btn-xs-success:hover { background: #16a34a; }
+    .btn-xs-warning { background: var(--accent-orange); color: #000; }
+    .btn-xs-warning:hover { background: #d97706; }
+    .btn-xs-ghost { background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-light); }
+    .btn-xs-ghost:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+
+    /* ── Status Badges ─────────────────────────────────── */
+    .status-active { color: var(--accent-green); }
+    .status-suspended { color: var(--accent-red); }
+    .role-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: var(--radius-xl);
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .role-admin { background: rgba(139,92,246,0.15); color: #c4b5fd; }
+    .role-user { background: rgba(107,114,128,0.15); color: #9ca3af; }
+
+    /* ── Tariff Form ───────────────────────────────────── */
+    .tariff-form-card {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .tariff-form-card h3 { margin-bottom: 16px; }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+    @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
+
+    /* ── Settings Form ─────────────────────────────────── */
+    .settings-form {
+      max-width: 560px;
+    }
+
+    /* ── Stats Cards ───────────────────────────────────── */
+    .admin-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .admin-stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      text-align: center;
+    }
+    .admin-stat-card .stat-value {
+      font-size: 2rem;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+    .admin-stat-card .stat-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    .stat-blue { color: var(--accent-blue); }
+    .stat-green { color: var(--accent-green); }
+    .stat-purple { color: var(--accent-purple); }
+    .stat-orange { color: var(--accent-orange); }
+
+    /* ── Breakdown Section ─────────────────────────────── */
+    .breakdown-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .breakdown-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+    .breakdown-card h4 {
+      font-size: 0.9rem;
+      margin-bottom: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .breakdown-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      font-size: 0.9rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .breakdown-item:last-child { border-bottom: none; }
+    .breakdown-value { font-weight: 600; }
+
+    /* ── Guide Styling ─────────────────────────────────── */
+    .guide-content {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      line-height: 1.8;
+    }
+    .guide-content h1 { font-size: 1.5rem; margin-bottom: 16px; }
+    .guide-content h2 { font-size: 1.15rem; margin-top: 24px; margin-bottom: 10px; color: var(--accent-blue); }
+    .guide-content ol { padding-left: 20px; margin-bottom: 16px; }
+    .guide-content li { color: var(--text-secondary); margin-bottom: 4px; font-size: 0.95rem; }
+    .guide-content ul { padding-left: 20px; margin-bottom: 16px; }
+    .guide-content code {
+      background: var(--bg-primary);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      color: var(--accent-blue);
+    }
+
+    /* ── Pagination ────────────────────────────────────── */
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      margin-top: 20px;
+    }
+    .pagination button {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-light);
+      color: var(--text-secondary);
+      padding: 8px 14px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all var(--transition);
+    }
+    .pagination button:hover:not(:disabled) {
+      background: var(--bg-card-hover);
+      color: var(--text-primary);
+      border-color: var(--accent-blue);
+    }
+    .pagination button:disabled { opacity: 0.4; cursor: default; }
+    .pagination .page-info { font-size: 0.85rem; color: var(--text-muted); }
+
+    /* ── Modal ─────────────────────────────────────────── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .modal-content {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      max-width: 480px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    .modal-content h3 { margin-bottom: 20px; }
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+
+    /* ── Toast (override position for admin) ───────────── */
+    .toast-container { top: 20px; right: 20px; }
+  </style>
+</head>
+<body class="dashboard-layout">
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <a href="/dashboard" class="logo"><span class="icon">🔍</span> TenderSearch</a>
+  </div>
+  <ul class="sidebar-nav">
+    <li><a href="/dashboard"><span class="icon">📊</span> Обзор</a></li>
+    <li><a href="/dashboard/subscriptions.html"><span class="icon">📬</span> Подписки</a></li>
+    <li><a href="/dashboard/tenders.html"><span class="icon">📋</span> Тендеры</a></li>
+    <li><a href="/dashboard/profile.html"><span class="icon">👤</span> Профиль</a></li>
+    <li><a href="/dashboard/plan.html"><span class="icon">💳</span> Тариф</a></li>
+    <li><a href="/dashboard/admin.html" class="active"><span class="icon">⚙️</span> Админка</a></li>
+    <li style="margin-top:auto;padding-top:20px;border-top:1px solid var(--border);margin-top:40px">
+      <a href="#" onclick="API.logout();return false"><span class="icon">🚪</span> Выйти</a>
+    </li>
+  </ul>
+</aside>
+
+<main class="main-content">
+  <div class="dashboard-header">
+    <div>
+      <h2>⚙️ Админ-панель</h2>
+      <p class="text-muted">Управление пользователями, тарифами и настройками</p>
+    </div>
+    <a href="/dashboard/admin.html" class="btn btn-sm btn-ghost" onclick="location.reload();return false">🔄 Обновить</a>
+  </div>
+
+  <!-- Tabs -->
+  <div class="admin-tabs">
+    <button class="admin-tab active" data-tab="users"><span class="icon">👥</span>Пользователи</button>
+    <button class="admin-tab" data-tab="tariffs"><span class="icon">💳</span>Тарифы</button>
+    <button class="admin-tab" data-tab="platega"><span class="icon">💸</span>Platega</button>
+    <button class="admin-tab" data-tab="guide"><span class="icon">📖</span>Инструкции</button>
+    <button class="admin-tab" data-tab="stats"><span class="icon">📈</span>Статистика</button>
+  </div>
+
+  <!-- USERS TAB -->
+  <div id="tab-users" class="admin-tab-content active">
+    <div class="admin-toolbar">
+      <input
+        type="text"
+        id="user-search"
+        class="search-input"
+        placeholder="🔍 Поиск по email или имени..."
+        onkeyup="AdminPanel.searchUsers()"
+      >
+    </div>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Email</th>
+            <th>Имя</th>
+            <th>Роль</th>
+            <th>Тариф</th>
+            <th>Статус</th>
+            <th>Дата регистрации</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody id="users-table-body">
+          <tr><td colspan="7" class="loading"><span class="spinner"></span> Загрузка...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="users-pagination" class="pagination"></div>
+  </div>
+
+  <!-- TARIFFS TAB -->
+  <div id="tab-tariffs" class="admin-tab-content">
+    <div class="tariff-form-card" id="tariff-form-card" style="display:none">
+      <h3 id="tariff-form-title">Новый тариф</h3>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Системное имя (ключ)</label>
+          <input type="text" id="tariff-name" class="form-input" placeholder="e.g. enterprise">
+        </div>
+        <div class="form-group">
+          <label>Отображаемое имя</label>
+          <input type="text" id="tariff-display" class="form-input" placeholder="Enterprise">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Цена в месяц (₽)</label>
+          <input type="number" id="tariff-price" class="form-input" min="0" placeholder="9900">
+        </div>
+        <div class="form-group">
+          <label>Лимит тендеров</label>
+          <input type="number" id="tariff-tender-limit" class="form-input" min="0" placeholder="500">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Лимит подписок</label>
+          <input type="number" id="tariff-sub-limit" class="form-input" min="0" placeholder="50">
+        </div>
+        <div class="form-group">
+          <label>Тип AI-анализа</label>
+          <select id="tariff-ai" class="form-input">
+            <option value="basic">Basic</option>
+            <option value="full">Full</option>
+            <option value="priority">Priority</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <input type="checkbox" id="tariff-active" checked style="accent-color:var(--accent-blue);width:16px;height:16px">
+          Активен
+        </label>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-primary btn-sm" onclick="AdminPanel.saveTariff()">💾 Сохранить</button>
+        <button class="btn btn-ghost btn-sm" onclick="AdminPanel.cancelTariffForm()">Отмена</button>
+      </div>
+    </div>
+
+    <div class="admin-toolbar">
+      <button class="btn btn-primary btn-sm" onclick="AdminPanel.showTariffForm()">➕ Новый тариф</button>
+    </div>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Имя</th>
+            <th>Название</th>
+            <th>Цена/мес</th>
+            <th>Лимит тендеров</th>
+            <th>Лимит подписок</th>
+            <th>AI</th>
+            <th>Активен</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody id="tariffs-table-body">
+          <tr><td colspan="8" class="loading"><span class="spinner"></span> Загрузка...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PLATEGA TAB -->
+  <div id="tab-platega" class="admin-tab-content">
+    <div class="card" style="max-width:560px">
+      <h3 class="mb-2">💸 Настройки Platega</h3>
+      <p class="text-muted mb-3">Укажите данные мерчанта для приёма платежей</p>
+      <div class="form-group">
+        <label>Merchant ID</label>
+        <input type="text" id="platega-merchant" class="form-input" placeholder="platega_merchant_...">
+      </div>
+      <div class="form-group">
+        <label>Secret Key</label>
+        <input type="text" id="platega-secret" class="form-input" placeholder="sk_...">
+      </div>
+      <div class="form-group">
+        <label>Webhook URL (опционально)</label>
+        <input type="text" id="platega-webhook" class="form-input" placeholder="https://tenders.ivoryhome.ru/api/billing/webhook">
+      </div>
+      <button class="btn btn-primary" onclick="AdminPanel.savePlategaSettings()">💾 Сохранить настройки</button>
+      <div id="platega-feedback" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <!-- GUIDE TAB -->
+  <div id="tab-guide" class="admin-tab-content">
+    <div class="guide-content" id="guide-content">
+      <div class="loading"><span class="spinner"></span> Загрузка...</div>
+    </div>
+  </div>
+
+  <!-- STATS TAB -->
+  <div id="tab-stats" class="admin-tab-content">
+    <div class="admin-stats-grid" id="stats-grid">
+      <div class="loading" style="grid-column:1/-1"><span class="spinner"></span> Загрузка статистики...</div>
+    </div>
+    <div class="breakdown-grid" id="breakdown-grid"></div>
+  </div>
+
+</main>
+
+<!-- Toast container -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- Modal overlay (hidden by default) -->
+<div id="modal-overlay" class="modal-overlay hidden">
+  <div class="modal-content" id="modal-content"></div>
+</div>
+
+<script src="../js/api.js"></script>
+<script>
+const AdminPanel = (() => {
+  let usersPage = 1;
+  let usersSearch = '';
+  let currentTab = 'users';
+  let editingTariffId = null;
+
+  // ── INIT ──────────────────────────────────────────────────
+
+  async function init() {
+    if (!API.isLoggedIn()) { window.location.href = '/login'; return; }
+    try { await API.getMe(); } catch(e) { window.location.href = '/login'; return; }
+
+    // Tab switching
+    document.querySelectorAll('.admin-tab').forEach(tab => {
+      tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+    });
+
+    // Load first tab
+    switchTab('users');
+  }
+
+  function switchTab(tabName) {
+    currentTab = tabName;
+    document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+    document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+    document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.remove('active'));
+    document.getElementById(`tab-${tabName}`).classList.add('active');
+
+    if (tabName === 'users') loadUsers();
+    else if (tabName === 'tariffs') loadTariffs();
+    else if (tabName === 'platega') loadPlategaSettings();
+    else if (tabName === 'guide') loadGuide();
+    else if (tabName === 'stats') loadStats();
+  }
+
+  // ── TOAST ─────────────────────────────────────────────────
+
+  function toast(msg, type = 'info') {
+    const container = document.getElementById('toast-container');
+    const el = document.createElement('div');
+    el.className = `toast toast-${type}`;
+    el.textContent = msg;
+    container.appendChild(el);
+    setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity 0.3s'; setTimeout(() => el.remove(), 300); }, 3500);
+  }
+
+  // ── MODAL ─────────────────────────────────────────────────
+
+  function showModal(title, bodyHTML, onSave) {
+    const overlay = document.getElementById('modal-overlay');
+    const content = document.getElementById('modal-content');
+    content.innerHTML = `<h3>${title}</h3>${bodyHTML}<div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" onclick="AdminPanel.closeModal()">Отмена</button>
+      <button class="btn btn-primary btn-sm" id="modal-save-btn">Сохранить</button>
+    </div>`;
+    overlay.classList.remove('hidden');
+    document.getElementById('modal-save-btn').addEventListener('click', async () => {
+      await onSave();
+      closeModal();
+    });
+  }
+
+  function closeModal() {
+    document.getElementById('modal-overlay').classList.add('hidden');
+  }
+
+  // ── USERS ─────────────────────────────────────────────────
+
+  async function loadUsers() {
+    try {
+      const data = await API.getUsers({ search: usersSearch, page: usersPage, per_page: 20 });
+      renderUsersTable(data.items);
+      renderUsersPagination(data);
+    } catch(e) {
+      toast('Ошибка загрузки пользователей: ' + e.message, 'error');
+    }
+  }
+
+  function renderUsersTable(users) {
+    const tbody = document.getElementById('users-table-body');
+    if (users.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text-muted)">Пользователи не найдены</td></tr>';
+      return;
+    }
+    tbody.innerHTML = users.map(u => {
+      const date = u.created_at ? new Date(u.created_at).toLocaleDateString('ru-RU') : '—';
+      const roleBadge = u.role === 'admin'
+        ? '<span class="role-badge role-admin">Админ</span>'
+        : '<span class="role-badge role-user">Пользователь</span>';
+      const status = u.is_active
+        ? '<span class="status-active">● Активен</span>'
+        : '<span class="status-suspended">● Заблокирован</span>';
+
+      return `<tr>
+        <td>${esc(u.email)}</td>
+        <td>${esc(u.name || '—')}</td>
+        <td>${roleBadge}</td>
+        <td><span class="badge badge-blue">${esc(u.tariff)}</span></td>
+        <td>${status}</td>
+        <td>${date}</td>
+        <td>
+          <div class="table-actions">
+            <button class="btn-xs btn-xs-ghost" onclick="AdminPanel.editUserRole('${u.id}', '${escJs(u.role)}', '${escJs(u.tariff)}')">✏️ Роль</button>
+            <button class="btn-xs btn-xs-warning" onclick="AdminPanel.changeTariff('${u.id}', '${escJs(u.tariff)}')">💳 Тариф</button>
+            ${u.is_active
+              ? `<button class="btn-xs btn-xs-danger" onclick="AdminPanel.toggleUserStatus('${u.id}', false)">🚫 Бан</button>`
+              : `<button class="btn-xs btn-xs-success" onclick="AdminPanel.toggleUserStatus('${u.id}', true)">✅ Разбан</button>`
+            }
+            <button class="btn-xs btn-xs-primary" onclick="AdminPanel.resetPassword('${u.id}')">🔑 Пароль</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  function renderUsersPagination(data) {
+    const pag = document.getElementById('users-pagination');
+    pag.innerHTML = `
+      <button ${data.page <= 1 ? 'disabled' : ''} onclick="AdminPanel.goPage(${data.page - 1})">← Назад</button>
+      <span class="page-info">Стр. ${data.page} из ${data.pages} (всего: ${data.total})</span>
+      <button ${data.page >= data.pages ? 'disabled' : ''} onclick="AdminPanel.goPage(${data.page + 1})">Вперёд →</button>
+    `;
+  }
+
+  function searchUsers() {
+    usersSearch = document.getElementById('user-search').value;
+    usersPage = 1;
+    loadUsers();
+  }
+
+  function goPage(page) {
+    usersPage = page;
+    loadUsers();
+  }
+
+  function editUserRole(userId, currentRole, currentTariff) {
+    const bodyHTML = `
+      <div class="form-group">
+        <label>Роль</label>
+        <select id="modal-role" class="form-input">
+          <option value="user" ${currentRole === 'user' ? 'selected' : ''}>User</option>
+          <option value="admin" ${currentRole === 'admin' ? 'selected' : ''}>Admin</option>
+        </select>
+      </div>
+    `;
+    showModal('Изменить роль', bodyHTML, async () => {
+      const role = document.getElementById('modal-role').value;
+      try {
+        await API.updateUser(userId, { role });
+        toast('Роль обновлена', 'success');
+        loadUsers();
+      } catch(e) { toast('Ошибка: ' + e.message, 'error'); }
+    });
+  }
+
+  function changeTariff(userId, currentTariff) {
+    const bodyHTML = `
+      <div class="form-group">
+        <label>Тариф</label>
+        <select id="modal-tariff" class="form-input">
+          <option value="free" ${currentTariff === 'free' ? 'selected' : ''}>Free</option>
+          <option value="pro" ${currentTariff === 'pro' ? 'selected' : ''}>Pro</option>
+          <option value="business" ${currentTariff === 'business' ? 'selected' : ''}>Business</option>
+        </select>
+      </div>
+    `;
+    showModal('Сменить тариф', bodyHTML, async () => {
+      const tariff = document.getElementById('modal-tariff').value;
+      try {
+        await API.updateUser(userId, { tariff });
+        toast('Тариф обновлён', 'success');
+        loadUsers();
+      } catch(e) { toast('Ошибка: ' + e.message, 'error'); }
+    });
+  }
+
+  async function toggleUserStatus(userId, activate) {
+    if (!confirm(activate ? 'Разблокировать пользователя?' : 'Заблокировать пользователя?')) return;
+    try {
+      await API.updateUser(userId, { is_active: activate });
+      toast(activate ? 'Пользователь разблокирован' : 'Пользователь заблокирован', 'success');
+      loadUsers();
+    } catch(e) { toast('Ошибка: ' + e.message, 'error'); }
+  }
+
+  async function resetPassword(userId) {
+    if (!confirm('Сбросить пароль? Будет сгенерирован новый.')) return;
+    try {
+      const data = await API.resetUserPassword(userId);
+      alert(`Пароль сброшен!\n\nНовый пароль: ${data.new_password}\n\nСообщите его пользователю.`);
+      toast('Пароль сброшен', 'success');
+    } catch(e) { toast('Ошибка: ' + e.message, 'error'); }
+  }
+
+  // ── TARIFFS ────────────────────────────────────────────────
+
+  async function loadTariffs() {
+    try {
+      const tariffs = await API.getAdminTariffs();
+      renderTariffsTable(tariffs);
+    } catch(e) {
+      toast('Ошибка загрузки тарифов: ' + e.message, 'error');
+    }
+  }
+
+  function renderTariffsTable(tariffs) {
+    const tbody = document.getElementById('tariffs-table-body');
+    if (tariffs.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text-muted)">Нет тарифов</td></tr>';
+      return;
+    }
+    tbody.innerHTML = tariffs.map(t => `
+      <tr>
+        <td><strong>${esc(t.name)}</strong></td>
+        <td>${esc(t.display_name)}</td>
+        <td>${t.price_monthly.toLocaleString()} ₽</td>
+        <td>${t.tender_limit}</td>
+        <td>${t.subscription_limit}</td>
+        <td><span class="badge badge-purple">${esc(t.ai_analysis_type)}</span></td>
+        <td>${t.is_active ? '✅' : '❌'}</td>
+        <td>
+          <div class="table-actions">
+            <button class="btn-xs btn-xs-ghost" onclick="AdminPanel.editTariff('${t.id}')">✏️</button>
+            ${t.name !== 'free' ? `<button class="btn-xs btn-xs-danger" onclick="AdminPanel.deleteTariffConfirm('${t.id}', '${escJs(t.name)}')">🗑️</button>` : ''}
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function showTariffForm(tariff = null) {
+    const card = document.getElementById('tariff-form-card');
+    card.style.display = 'block';
+    if (tariff) {
+      editingTariffId = tariff.id;
+      document.getElementById('tariff-form-title').textContent = 'Редактировать тариф';
+      document.getElementById('tariff-name').value = tariff.name;
+      document.getElementById('tariff-name').disabled = true;
+      document.getElementById('tariff-display').value = tariff.display_name;
+      document.getElementById('tariff-price').value = tariff.price_monthly;
+      document.getElementById('tariff-tender-limit').value = tariff.tender_limit;
+      document.getElementById('tariff-sub-limit').value = tariff.subscription_limit;
+      document.getElementById('tariff-ai').value = tariff.ai_analysis_type;
+      document.getElementById('tariff-active').checked = tariff.is_active;
+    } else {
+      editingTariffId = null;
+      document.getElementById('tariff-form-title').textContent = 'Новый тариф';
+      document.getElementById('tariff-name').disabled = false;
+      document.getElementById('tariff-name').value = '';
+      document.getElementById('tariff-display').value = '';
+      document.getElementById('tariff-price').value = '';
+      document.getElementById('tariff-tender-limit').value = '';
+      document.getElementById('tariff-sub-limit').value = '';
+      document.getElementById('tariff-ai').value = 'basic';
+      document.getElementById('tariff-active').checked = true;
+    }
+    card.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function editTariff(id) {
+    API.getAdminTariffs().then(tariffs => {
+      const t = tariffs.find(x => x.id === id);
+      if (t) showTariffForm(t);
+    }).catch(e => toast('Ошибка: ' + e.message, 'error'));
+  }
+
+  function cancelTariffForm() {
+    document.getElementById('tariff-form-card').style.display = 'none';
+    editingTariffId = null;
+  }
+
+  async function saveTariff() {
+    const name = document.getElementById('tariff-name').value.trim();
+    const display_name = document.getElementById('tariff-display').value.trim();
+    const price_monthly = parseInt(document.getElementById('tariff-price').value) || 0;
+    const tender_limit = parseInt(document.getElementById('tariff-tender-limit').value) || 0;
+    const subscription_limit = parseInt(document.getElementById('tariff-sub-limit').value) || 0;
+    const ai_analysis_type = document.getElementById('tariff-ai').value;
+    const is_active = document.getElementById('tariff-active').checked;
+
+    if (!name || !display_name) { toast('Заполните имя и название', 'error'); return; }
+
+    try {
+      if (editingTariffId) {
+        await API.updateTariff(editingTariffId, { display_name, price_monthly, tender_limit, subscription_limit, ai_analysis_type, is_active });
+        toast('Тариф обновлён', 'success');
+      } else {
+        await API.createTariff({ name, display_name, price_monthly, tender_limit, subscription_limit, ai_analysis_type, is_active });
+        toast('Тариф создан', 'success');
+      }
+      cancelTariffForm();
+      loadTariffs();
+    } catch(e) { toast('Ошибка: ' + e.message, 'error'); }
+  }
+
+  async function deleteTariffConfirm(id, name) {
+    if (!confirm(`Удалить тариф «${name}»? Это действие необратимо.`)) return;
+    try {
+      await API.deleteTariff(id);
+      toast(`Тариф «${name}» удалён`, 'success');
+      loadTariffs();
+    } catch(e) { toast('Ошибка: ' + e.message, 'error'); }
+  }
+
+  // ── PLATEGA SETTINGS ───────────────────────────────────────
+
+  async function loadPlategaSettings() {
+    try {
+      const data = await API.getAdminSettings();
+      document.getElementById('platega-merchant').value = data.merchant_id || '';
+      document.getElementById('platega-secret').value = data.secret_key || '';
+      document.getElementById('platega-webhook').value = data.webhook_url || '';
+    } catch(e) {
+      toast('Ошибка загрузки настроек: ' + e.message, 'error');
+    }
+  }
+
+  async function savePlategaSettings() {
+    const merchant_id = document.getElementById('platega-merchant').value.trim();
+    const secret_key = document.getElementById('platega-secret').value.trim();
+    const webhook_url = document.getElementById('platega-webhook').value.trim();
+
+    if (!merchant_id || !secret_key) {
+      document.getElementById('platega-feedback').innerHTML = '<span class="form-error">Заполните Merchant ID и Secret Key</span>';
+      return;
+    }
+
+    try {
+      await API.updateAdminSettings({ merchant_id, secret_key, webhook_url });
+      document.getElementById('platega-feedback').innerHTML = '<span class="form-success">✅ Настройки сохранены</span>';
+      toast('Настройки Platega сохранены', 'success');
+    } catch(e) {
+      document.getElementById('platega-feedback').innerHTML = `<span class="form-error">Ошибка: ${esc(e.message)}</span>`;
+    }
+  }
+
+  // ── GUIDE ──────────────────────────────────────────────────
+
+  async function loadGuide() {
+    try {
+      const data = await API.getActivationGuide();
+      const guide = data.guide;
+      // Simple markdown → HTML
+      const html = guide
+        .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+        .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+        .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/^- (.+)$/gm, '<li>$1</li>')
+        .replace(/^(\d+)\. (.+)$/gm, '<li value="$1">$2</li>')
+        .replace(/(<li[^>]*>.*<\/li>\n?)+/g, '<ol>$&</ol>')
+        .replace(/\n/g, '<br>');
+      document.getElementById('guide-content').innerHTML = html;
+    } catch(e) {
+      document.getElementById('guide-content').innerHTML = `<p class="text-danger">Ошибка загрузки: ${esc(e.message)}</p>`;
+    }
+  }
+
+  // ── STATS ──────────────────────────────────────────────────
+
+  async function loadStats() {
+    try {
+      const data = await API.getStats();
+      renderStats(data);
+    } catch(e) {
+      document.getElementById('stats-grid').innerHTML = `<div class="loading" style="grid-column:1/-1"><span class="text-danger">Ошибка: ${esc(e.message)}</span></div>`;
+    }
+  }
+
+  function renderStats(data) {
+    const grid = document.getElementById('stats-grid');
+    grid.innerHTML = `
+      <div class="admin-stat-card">
+        <div class="stat-value stat-blue">${data.users_total}</div>
+        <div class="stat-label">Всего пользователей</div>
+      </div>
+      <div class="admin-stat-card">
+        <div class="stat-value stat-green">${data.users_active}</div>
+        <div class="stat-label">Активных</div>
+      </div>
+      <div class="admin-stat-card">
+        <div class="stat-value stat-purple">${data.users_new_7d}</div>
+        <div class="stat-label">Новых за 7 дней</div>
+      </div>
+      <div class="admin-stat-card">
+        <div class="stat-value stat-blue">${data.tenders_total}</div>
+        <div class="stat-label">Всего тендеров</div>
+      </div>
+      <div class="admin-stat-card">
+        <div class="stat-value stat-green">${data.ai_analyzed_total}</div>
+        <div class="stat-label">AI-анализов</div>
+      </div>
+      <div class="admin-stat-card">
+        <div class="stat-value stat-orange">${data.subscriptions_total}</div>
+        <div class="stat-label">Подписок (${data.subscriptions_active} активных)</div>
+      </div>
+      <div class="admin-stat-card">
+        <div class="stat-value stat-purple">${data.matches_total}</div>
+        <div class="stat-label">Совпадений</div>
+      </div>
+    `;
+
+    // Breakdowns
+    const bgrid = document.getElementById('breakdown-grid');
+    bgrid.innerHTML = '';
+
+    if (data.users_by_tariff && Object.keys(data.users_by_tariff).length > 0) {
+      bgrid.innerHTML += `
+        <div class="breakdown-card">
+          <h4>Пользователи по тарифам</h4>
+          ${Object.entries(data.users_by_tariff).map(([k,v]) => `<div class="breakdown-item"><span>${esc(k)}</span><span class="breakdown-value">${v}</span></div>`).join('')}
+        </div>
+      `;
+    }
+
+    if (data.tenders_by_law && Object.keys(data.tenders_by_law).length > 0) {
+      bgrid.innerHTML += `
+        <div class="breakdown-card">
+          <h4>Тендеры по типам закона</h4>
+          ${Object.entries(data.tenders_by_law).map(([k,v]) => `<div class="breakdown-item"><span>${esc(k)}</span><span class="breakdown-value">${v}</span></div>`).join('')}
+        </div>
+      `;
+    }
+  }
+
+  // ── HELPERS ────────────────────────────────────────────────
+
+  function esc(s) {
+    if (!s) return '';
+    const div = document.createElement('div');
+    div.textContent = s;
+    return div.innerHTML;
+  }
+
+  function escJs(s) {
+    if (!s) return '';
+    return s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+  }
+
+  // Close modal on overlay click
+  document.getElementById('modal-overlay').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+
+  // Init on load
+  document.addEventListener('DOMContentLoaded', init);
+
+  return {
+    switchTab,
+    searchUsers,
+    goPage,
+    editUserRole,
+    changeTariff,
+    toggleUserStatus,
+    resetPassword,
+    showTariffForm,
+    editTariff,
+    cancelTariffForm,
+    saveTariff,
+    deleteTariffConfirm,
+    savePlategaSettings,
+    closeModal,
+  };
+})();
+</script>
+</body>
+</html>

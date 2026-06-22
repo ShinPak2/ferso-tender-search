@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Тариф — TenderSearch</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="dashboard-layout">
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <a href="/dashboard" class="logo"><span class="icon">🔍</span> TenderSearch</a>
+  </div>
+  <ul class="sidebar-nav">
+    <li><a href="/dashboard"><span class="icon">📊</span> Обзор</a></li>
+    <li><a href="/dashboard/subscriptions.html"><span class="icon">📬</span> Подписки</a></li>
+    <li><a href="/dashboard/tenders.html"><span class="icon">📋</span> Тендеры</a></li>
+    <li><a href="/dashboard/profile.html"><span class="icon">👤</span> Профиль</a></li>
+    <li><a href="/dashboard/plan.html" class="active"><span class="icon">💳</span> Тариф</a></li>
+    <li style="margin-top:40px;padding-top:20px;border-top:1px solid var(--border)">
+      <a href="#" onclick="API.logout();return false"><span class="icon">🚪</span> Выйти</a>
+    </li>
+  </ul>
+</aside>
+
+<main class="main-content">
+  <div class="dashboard-header">
+    <div>
+      <h2>💳 Тариф и биллинг</h2>
+      <p class="text-muted">Управление тарифным планом</p>
+    </div>
+  </div>
+
+  <!-- Current Plan Summary -->
+  <div class="card profile-section">
+    <h3>Текущий тариф</h3>
+    <div id="current-plan-info">
+      <div class="loading"><span class="spinner"></span> Загрузка...</div>
+    </div>
+  </div>
+
+  <!-- Tariff Cards -->
+  <div id="plan-tariffs" class="pricing-grid mt-3">
+    <div class="loading"><span class="spinner"></span> Загрузка тарифов...</div>
+  </div>
+
+  <!-- Usage -->
+  <div class="card mt-3 profile-section">
+    <h3>Использование в этом месяце</h3>
+    <div class="stats-grid">
+      <div class="stat-card card">
+        <div class="stat-value" id="bill-tenders-viewed">—</div>
+        <div class="stat-label">Просмотрено тендеров</div>
+      </div>
+      <div class="stat-card card">
+        <div class="stat-value" id="bill-tenders-limit">—</div>
+        <div class="stat-label">Лимит тендеров</div>
+      </div>
+      <div class="stat-card card">
+        <div class="stat-value" id="bill-subs-used">—</div>
+        <div class="stat-label">Подписок создано</div>
+      </div>
+      <div class="stat-card card">
+        <div class="stat-value" id="bill-subs-limit">—</div>
+        <div class="stat-label">Лимит подписок</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="../js/api.js"></script>
+<script src="../js/dashboard.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  Dashboard.loadPlan();
+
+  // Fill usage section
+  try {
+    const user = await API.getMe();
+    document.getElementById('bill-tenders-viewed').textContent = user.tenders_viewed_this_month || 0;
+    document.getElementById('bill-tenders-limit').textContent = user.monthly_limit || 10;
+
+    const subs = await API.getSubscriptions();
+    document.getElementById('bill-subs-used').textContent = subs.length;
+
+    const limits = { free: 1, pro: 5, business: 20 };
+    document.getElementById('bill-subs-limit').textContent = limits[user.tariff] || 1;
+
+    document.getElementById('current-plan-info').innerHTML = `
+      <p>Тариф: <span class="badge badge-blue">${Dashboard.escapeHtml(user.tariff || 'free')}</span></p>
+      <p>Лимит: ${user.monthly_limit || 10} тендеров / ${limits[user.tariff] || 1} подписок</p>
+    `;
+  } catch (e) {
+    console.error(e);
+  }
+});
+</script>
+</body>
+</html>

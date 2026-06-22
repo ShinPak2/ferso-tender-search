@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Дашборд — TenderSearch</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    /* ── Search Hero ──────────────────────────────────── */
+    .search-hero {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      margin-bottom: 28px;
+    }
+    .search-hero h2 { font-size: 1.3rem; margin-bottom: 4px; }
+    .search-hero .subtitle { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px; }
+    .search-bar-wrap {
+      position: relative;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .search-input {
+      flex: 1;
+      min-width: 200px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      color: var(--text-primary);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color var(--transition);
+    }
+    .search-input:focus { border-color: var(--accent-blue); }
+    .search-input::placeholder { color: var(--text-muted); }
+
+    /* ── AI Suggestions ──────────────────────────────── */
+    .ai-suggestions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+      min-height: 32px;
+    }
+    .ai-suggestion-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      border-radius: 50px;
+      font-size: 0.8rem;
+      color: #93c5fd;
+      cursor: pointer;
+      transition: all var(--transition);
+      user-select: none;
+    }
+    .ai-suggestion-chip:hover {
+      background: rgba(59, 130, 246, 0.2);
+      border-color: var(--accent-blue);
+      color: #fff;
+    }
+    .ai-suggestion-chip .plus { font-weight: 700; font-size: 0.9rem; }
+    .ai-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.75rem;
+      color: var(--accent-blue);
+      padding: 6px 0;
+    }
+    .ai-spinner { width: 14px; height: 14px; border: 2px solid rgba(59,130,246,0.3); border-top-color: var(--accent-blue); border-radius: 50%; animation: spin 0.6s linear infinite; display: inline-block; }
+
+    /* ── Active Filters (Chips) ──────────────────────── */
+    .active-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+      min-height: 28px;
+    }
+    .filter-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-light);
+      border-radius: 50px;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+    .filter-chip .remove {
+      cursor: pointer;
+      color: var(--text-muted);
+      font-size: 1rem;
+      line-height: 0.8;
+      transition: color var(--transition);
+    }
+    .filter-chip .remove:hover { color: var(--accent-red); }
+    .filter-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 16px;
+      align-items: flex-end;
+    }
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .filter-group label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .filter-group select,
+    .filter-group input {
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 9px 12px;
+      color: var(--text-primary);
+      font-size: 0.85rem;
+      outline: none;
+      min-width: 130px;
+    }
+    .filter-group select:focus,
+    .filter-group input:focus { border-color: var(--accent-blue); }
+    .filter-group input[type="number"] { width: 130px; }
+
+    /* ── Tender Cards ────────────────────────────────── */
+    .tender-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      transition: all var(--transition);
+    }
+    .tender-card:hover {
+      border-color: var(--accent-blue);
+      background: var(--bg-card-hover);
+    }
+    .tender-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+      gap: 12px;
+    }
+    .tender-title {
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--text-primary);
+      line-height: 1.4;
+      text-decoration: none;
+    }
+    .tender-title:hover { color: var(--accent-blue); }
+    .tender-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    .tender-meta span { display: inline-flex; align-items: center; gap: 4px; }
+    .tender-price { color: var(--accent-green); font-weight: 600; white-space: nowrap; }
+    .tender-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+    .badge-44fz { background: rgba(139,92,246,0.15); color: #c4b5fd; }
+    .badge-223fz { background: rgba(34,197,94,0.15); color: #86efac; }
+    .relevance-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 50px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .relevance-high { background: rgba(34,197,94,0.15); color: #4ade80; }
+    .relevance-mid { background: rgba(245,158,11,0.15); color: #fbbf24; }
+    .relevance-low { background: rgba(107,114,128,0.15); color: #9ca3af; }
+
+    /* ── Empty state ─────────────────────────────────── */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+    }
+    .empty-state .icon { font-size: 3rem; margin-bottom: 16px; }
+    .empty-state h3 { color: var(--text-muted); margin-bottom: 8px; }
+    .empty-state p { font-size: 0.9rem; }
+
+    /* ── Responsive ──────────────────────────────────── */
+    @media (max-width: 768px) {
+      .search-hero { padding: 20px; }
+      .filter-row { flex-direction: column; }
+      .filter-group select,
+      .filter-group input { width: 100%; min-width: unset; }
+    }
+  </style>
+</head>
+<body class="dashboard-layout">
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <a href="/dashboard" class="logo"><span class="icon">🔍</span> TenderSearch</a>
+  </div>
+  <ul class="sidebar-nav">
+    <li><a href="/dashboard" class="active"><span class="icon">📊</span> Обзор</a></li>
+    <li><a href="/dashboard/subscriptions.html"><span class="icon">📬</span> Подписки</a></li>
+    <li><a href="/dashboard/tenders.html"><span class="icon">📋</span> Тендеры</a></li>
+    <li><a href="/dashboard/profile.html"><span class="icon">👤</span> Профиль</a></li>
+    <li><a href="/dashboard/plan.html"><span class="icon">💳</span> Тариф</a></li>
+    <li style="margin-top:auto;padding-top:20px;border-top:1px solid var(--border);margin-top:40px">
+      <a href="#" onclick="API.logout();return false"><span class="icon">🚪</span> Выйти</a>
+    </li>
+  </ul>
+</aside>
+
+<main class="main-content">
+  <div class="dashboard-header">
+    <div>
+      <h2>Добро пожаловать, <span id="user-name">...</span> 👋</h2>
+      <p class="text-muted">Настройте критерии — и AI найдёт подходящие тендеры</p>
+    </div>
+  </div>
+
+  <!-- ⭐ SEARCH HERO — Главный поиск с AI-подсказками -->
+  <div class="search-hero">
+    <h2>🔎 Поиск тендеров</h2>
+    <p class="subtitle">
+      Введите ключевые слова вашей специализации. AI предложит похожие запросы —
+      нажимайте, чтобы добавить. Затем уточните фильтры.
+    </p>
+
+    <div class="search-bar-wrap">
+      <input
+        type="text"
+        id="keyword-input"
+        class="search-input"
+        placeholder="Например: строительные работы, поставка оборудования, IT-услуги..."
+        autocomplete="off"
+      >
+      <button id="search-btn" class="btn btn-primary" onclick="Dashboard.doSearch()">
+        🔍 Найти тендеры
+      </button>
+    </div>
+
+    <!-- AI Suggestions -->
+    <div id="ai-suggestions" class="ai-suggestions"></div>
+
+    <!-- Active keyword chips -->
+    <div id="active-filters" class="active-filters"></div>
+
+    <!-- Additional filters -->
+    <div class="filter-row">
+      <div class="filter-group">
+        <label>Тип закона</label>
+        <select id="filter-law">
+          <option value="">Любой</option>
+          <option value="44-ФЗ">44-ФЗ</option>
+          <option value="223-ФЗ">223-ФЗ</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Регион</label>
+        <input type="text" id="filter-region" placeholder="Москва">
+      </div>
+      <div class="filter-group">
+        <label>Цена от (₽)</label>
+        <input type="number" id="filter-price-min" placeholder="0" min="0">
+      </div>
+      <div class="filter-group">
+        <label>Цена до (₽)</label>
+        <input type="number" id="filter-price-max" placeholder="Любая" min="0">
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="Dashboard.saveAsSubscription()" title="Сохранить критерии как подписку">
+        💾 Сохранить подписку
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card card">
+      <div class="stat-value" id="stat-tenders">—</div>
+      <div class="stat-label">Всего тендеров</div>
+    </div>
+    <div class="stat-card card">
+      <div class="stat-value" id="stat-subscriptions">—</div>
+      <div class="stat-label">Моих подписок</div>
+    </div>
+    <div class="stat-card card">
+      <div class="stat-value" id="stat-active">—</div>
+      <div class="stat-label">Активных тендеров</div>
+    </div>
+    <div class="stat-card card">
+      <div class="stat-value" id="stat-ai">—</div>
+      <div class="stat-label">AI-анализов</div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="card">
+    <div class="flex-between mb-2">
+      <h3 id="results-heading">📋 Результаты поиска</h3>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span id="results-count" class="text-muted" style="font-size:0.85rem"></span>
+        <a href="/dashboard/tenders.html" class="btn btn-sm btn-ghost">Все тендеры →</a>
+      </div>
+    </div>
+    <div id="results-area">
+      <!-- Empty state (initial) -->
+      <div id="initial-empty" class="empty-state">
+        <div class="icon">🎯</div>
+        <h3>Введите критерии поиска выше</h3>
+        <p>Опишите вашу специализацию — мы найдём подходящие тендеры.<br>
+        AI-подсказки помогут подобрать правильные ключевые слова.</p>
+      </div>
+      <!-- Results -->
+      <div id="tender-results" class="tender-list hidden"></div>
+      <!-- Loading -->
+      <div id="loading-area" class="loading hidden"><span class="spinner"></span> Ищем тендеры...</div>
+      <!-- No results -->
+      <div id="no-results" class="empty-state hidden">
+        <div class="icon">🔍</div>
+        <h3>Ничего не найдено</h3>
+        <p>Попробуйте изменить ключевые слова или расширить фильтры</p>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="../js/api.js"></script>
+<script src="../js/dashboard.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  Dashboard.initDashboardHome();
+});
+</script>
+</body>
+</html>

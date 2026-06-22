@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QA-панель — TenderSearch</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="header">
+  <div class="container">
+    <a href="/" class="logo"><span class="icon">🧪</span> QA TenderSearch</a>
+    <nav>
+      <ul class="nav">
+        <li><a href="/">Лендинг</a></li>
+        <li><a href="/tester">QA</a></li>
+        <li><a href="/marketing">Маркетинг</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main style="padding:100px 24px 60px">
+  <div class="container">
+    <h1>QA-панель тестировщика</h1>
+    <p class="text-muted">Чек-листы по секциям для ручного и автоматического тестирования</p>
+
+    <div class="tester-check-grid mt-3">
+      <!-- Auth -->
+      <div class="tester-section">
+        <h4>🔐 Auth</h4>
+        <label class="checklist-item"><input type="checkbox"> Регистрация нового пользователя (валидные данные)</label>
+        <label class="checklist-item"><input type="checkbox"> Регистрация с уже существующим email (ошибка)</label>
+        <label class="checklist-item"><input type="checkbox"> Регистрация с коротким паролем (ошибка)</label>
+        <label class="checklist-item"><input type="checkbox"> Вход с корректными данными</label>
+        <label class="checklist-item"><input type="checkbox"> Вход с неверным паролем (401)</label>
+        <label class="checklist-item"><input type="checkbox"> Вход с несуществующим email (401)</label>
+        <label class="checklist-item"><input type="checkbox"> GET /api/auth/me с токеном (возвращает профиль)</label>
+        <label class="checklist-item"><input type="checkbox"> GET /api/auth/me без токена (401)</label>
+        <label class="checklist-item"><input type="checkbox"> JWT expire: доступ после истечения (401)</label>
+        <label class="checklist-item"><input type="checkbox"> Пароль не возвращается в API-ответах</label>
+      </div>
+
+      <!-- Tenders -->
+      <div class="tester-section">
+        <h4>📋 Поиск тендеров</h4>
+        <label class="checklist-item"><input type="checkbox"> GET /api/tenders (без фильтров) — список</label>
+        <label class="checklist-item"><input type="checkbox"> GET /api/tenders?q=keyword (поиск по названию)</label>
+        <label class="checklist-item"><input type="checkbox"> GET /api/tenders?law_type=44-ФЗ (фильтр по закону)</label>
+        <label class="checklist-item"><input type="checkbox"> GET /api/tenders?price_min=100000&price_max=5000000</label>
+        <label class="checklist-item"><input type="checkbox"> GET /api/tenders?region=Москва (по региону)</label>
+        <label class="checklist-item"><input type="checkbox"> Пагинация: page=1&page_size=5</label>
+        <label class="checklist-item"><input type="checkbox"> GET /api/tenders/:id — детали тендера</label>
+        <label class="checklist-item"><input type="checkbox"> GET /api/tenders/:id/documents — документы</label>
+        <label class="checklist-item"><input type="checkbox"> 404 для несуществующего тендера</label>
+        <label class="checklist-item"><input type="checkbox"> AI-анализ создаётся при просмотре</label>
+      </div>
+
+      <!-- Subscriptions -->
+      <div class="tester-section">
+        <h4>📬 Подписки</h4>
+        <label class="checklist-item"><input type="checkbox"> POST /api/subscriptions — создать подписку</label>
+        <label class="checklist-item"><input type="checkbox"> Валидация: пустое имя (ошибка)</label>
+        <label class="checklist-item"><input type="checkbox"> Лимит подписок Free (1), Pro (5), Business (20)</label>
+        <label class="checklist-item"><input type="checkbox"> GET /api/subscriptions — список с match_count</label>
+        <label class="checklist-item"><input type="checkbox"> DELETE /api/subscriptions/:id — удаление</label>
+        <label class="checklist-item"><input type="checkbox"> Нельзя удалить чужую подписку (403/404)</label>
+        <label class="checklist-item"><input type="checkbox"> GET /api/subscriptions/:id/matches — подборки</label>
+        <label class="checklist-item"><input type="checkbox"> Матчер срабатывает при парсинге</label>
+      </div>
+
+      <!-- AI Analysis -->
+      <div class="tester-section">
+        <h4>🤖 AI-анализ</h4>
+        <label class="checklist-item"><input type="checkbox"> AI анализ создаётся при GET /api/tenders/:id</label>
+        <label class="checklist-item"><input type="checkbox"> Поля: analysis, relevance (1-10), risks, recommendation</label>
+        <label class="checklist-item"><input type="checkbox"> Mock-анализ при отсутствии API ключа</label>
+        <label class="checklist-item"><input type="checkbox"> Повторный запрос не перезаписывает анализ</label>
+        <label class="checklist-item"><input type="checkbox"> Ошибка AI не ломает ответ (грациозный fallback)</label>
+      </div>
+
+      <!-- Dashboard -->
+      <div class="tester-section">
+        <h4>📊 Дашборд</h4>
+        <label class="checklist-item"><input type="checkbox"> /dashboard — статы (тендеры, подписки, совпадения)</label>
+        <label class="checklist-item"><input type="checkbox"> Редирект на /login без токена</label>
+        <label class="checklist-item"><input type="checkbox"> /dashboard/subscriptions — список подписок</label>
+        <label class="checklist-item"><input type="checkbox"> /dashboard/tenders — таблица тендеров</label>
+        <label class="checklist-item"><input type="checkbox"> /dashboard/tender-detail — карточка + AI</label>
+        <label class="checklist-item"><input type="checkbox"> /dashboard/profile — профиль пользователя</label>
+        <label class="checklist-item"><input type="checkbox"> /dashboard/plan — тарифы и биллинг</label>
+      </div>
+
+      <!-- Security -->
+      <div class="tester-section">
+        <h4>🔒 Безопасность</h4>
+        <label class="checklist-item"><input type="checkbox"> Все эндпоинты (кроме /api/auth/*) требуют токен</label>
+        <label class="checklist-item"><input type="checkbox"> CORS настроен (проверить заголовки)</label>
+        <label class="checklist-item"><input type="checkbox"> SQL-инъекции: экранирование через параметризацию</label>
+        <label class="checklist-item"><input type="checkbox"> XSS: HTML-сущности экранируются</label>
+        <label class="checklist-item"><input type="checkbox"> Rate limiting (опционально)</label>
+        <label class="checklist-item"><input type="checkbox"> Хеширование паролей (bcrypt)</label>
+        <label class="checklist-item"><input type="checkbox"> Admin эндпоинты только для admin-роли</label>
+      </div>
+
+      <!-- UI/UX -->
+      <div class="tester-section">
+        <h4>🎨 UI/UX</h4>
+        <label class="checklist-item"><input type="checkbox"> Тёмная тема на всех страницах</label>
+        <label class="checklist-item"><input type="checkbox"> Мобильная адаптивность (≤768px)</label>
+        <label class="checklist-item"><input type="checkbox"> Состояния загрузки (spinner)</label>
+        <label class="checklist-item"><input type="checkbox"> Пустые состояния (empty state)</label>
+        <label class="checklist-item"><input type="checkbox"> Ошибки отображаются пользователю</label>
+        <label class="checklist-item"><input type="checkbox"> Toast-уведомления</label>
+        <label class="checklist-item"><input type="checkbox"> Кнопки disabled во время запроса</label>
+        <label class="checklist-item"><input type="checkbox"> Навигация работает (хлебные крошки, назад)</label>
+      </div>
+
+      <!-- Performance -->
+      <div class="tester-section">
+        <h4>⚡ Производительность</h4>
+        <label class="checklist-item"><input type="checkbox"> Время ответа API < 500ms (p95)</label>
+        <label class="checklist-item"><input type="checkbox"> Пагинация ограничивает размер ответа</label>
+        <label class="checklist-item"><input type="checkbox"> Параллельный AI-анализ не блокирует API</label>
+        <label class="checklist-item"><input type="checkbox"> Пулы соединений PostgreSQL</label>
+        <label class="checklist-item"><input type="checkbox"> Nginx кэширует статику</label>
+      </div>
+    </div>
+
+    <!-- Bug Report Template -->
+    <div class="bug-report mt-3">
+      <h3>🐛 Шаблон баг-репорта</h3>
+      <div class="form-group">
+        <label>Заголовок</label>
+        <input class="form-input" placeholder="Краткое описание бага">
+      </div>
+      <div class="form-group">
+        <label>Шаги воспроизведения</label>
+        <textarea class="form-input" placeholder="1. Перейти на...&#10;2. Нажать...&#10;3. Увидеть..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Ожидаемый результат</label>
+        <textarea class="form-input" placeholder="Что должно произойти"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Фактический результат</label>
+        <textarea class="form-input" placeholder="Что происходит на самом деле"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Окружение</label>
+        <input class="form-input" placeholder="Браузер, ОС, версия">
+      </div>
+      <button class="btn btn-primary" onclick="alert('Баг-репорт скопирован в буфер (заглушка)')">📋 Копировать отчёт</button>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="mt-3">
+      <h3>🔗 Быстрые ссылки</h3>
+      <div class="quick-links">
+        <a href="/" class="quick-link">🏠 Лендинг</a>
+        <a href="/login" class="quick-link">🔑 Вход</a>
+        <a href="/register" class="quick-link">📝 Регистрация</a>
+        <a href="/pricing" class="quick-link">💰 Тарифы</a>
+        <a href="/dashboard" class="quick-link">📊 Дашборд</a>
+        <a href="/dashboard/subscriptions" class="quick-link">📬 Подписки</a>
+        <a href="/dashboard/tenders" class="quick-link">📋 Тендеры</a>
+        <a href="/dashboard/profile" class="quick-link">👤 Профиль</a>
+        <a href="/dashboard/plan" class="quick-link">💳 Тариф</a>
+        <a href="/marketing" class="quick-link">📈 Маркетинг</a>
+        <a href="/api/health" class="quick-link" target="_blank">❤️ Health API</a>
+        <a href="/api/tariffs" class="quick-link" target="_blank">📊 Tariffs API</a>
+      </div>
+    </div>
+  </div>
+</main>
+
+</body>
+</html>

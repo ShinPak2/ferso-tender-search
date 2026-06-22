@@ -1,0 +1,71 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: h025-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: tender
+      POSTGRES_PASSWORD: tender_secret
+      POSTGRES_DB: tendersearch
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tender -d tendersearch"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tendersearch
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: h025-backend
+    restart: unless-stopped
+    environment:
+      DB_USER: tender
+      DB_PASS: tender_secret
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: tendersearch
+      JWT_SECRET: ${JWT_SECRET:-tendersearch-jwt-secret-change-in-prod}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com/v1}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-chat}
+      DEBUG: ${DEBUG:-false}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@tendersearch.ru}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - tendersearch
+      - traefik
+
+  frontend:
+    image: nginx:alpine
+    container_name: h025-frontend
+    restart: unless-stopped
+    volumes:
+      - ./frontend/public:/usr/share/nginx/html:ro
+      - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.h025.rule=Host(`tenders.ivoryhome.ru`)"
+      - "traefik.http.routers.h025.entrypoints=websecure"
+      - "traefik.http.routers.h025.tls.certresolver=letsencrypt"
+      - "traefik.http.services.h025.loadbalancer.server.port=80"
+    networks:
+      - traefik
+
+volumes:
+  postgres_data:
+
+networks:
+  tendersearch:
+    driver: bridge
+  traefik:
+    external: true

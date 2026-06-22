@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TenderSearch — AI-поиск тендеров госзакупок</title>
+  <meta name="description" content="AI-ассистент для поиска и анализа тендеров на zakupki.gov.ru. Автоматический парсинг, AI-анализ, подборки по подписке.">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="header">
+  <div class="container">
+    <a href="/" class="logo">
+      <span class="icon">🔍</span> TenderSearch
+    </a>
+    <nav>
+      <ul class="nav">
+        <li><a href="#how-it-works">Как работает</a></li>
+        <li><a href="#pricing">Тарифы</a></li>
+        <li><a href="#faq">FAQ</a></li>
+        <li><a href="/login">Вход</a></li>
+        <li><a href="/register" class="btn btn-primary" id="auth-btn">Попробовать</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="container">
+    <h1>
+      <span class="text-gradient">TenderSearch</span> — AI-поиск тендеров<br>госзакупок
+    </h1>
+    <p>
+      Автоматический парсинг zakupki.gov.ru, AI-анализ документации и персонализированные подборки.
+      Перестаньте тратить часы на поиск — ИИ сделает это за вас.
+    </p>
+    <div class="hero-actions">
+      <a href="/register" class="btn btn-primary btn-lg">🔍 Начать бесплатно</a>
+      <a href="#how-it-works" class="btn btn-secondary btn-lg">Как это работает</a>
+    </div>
+  </div>
+</section>
+
+<!-- How It Works -->
+<section id="how-it-works" class="steps">
+  <div class="container">
+    <h2 class="text-center">Как это работает</h2>
+    <p class="text-center">Три простых шага от поиска до готовой подборки</p>
+    <div class="steps-grid">
+      <div class="step-card card">
+        <div class="step-number">Шаг 1</div>
+        <div class="step-icon">🎯</div>
+        <h3>Укажите критерии</h3>
+        <p>Создайте подписку с ключевыми словами, фильтрами по закону, цене и региону. Система будет искать тендеры под ваш бизнес.</p>
+      </div>
+      <div class="step-card card">
+        <div class="step-number">Шаг 2</div>
+        <div class="step-icon">🤖</div>
+        <h3>AI анализирует</h3>
+        <p>DeepSeek AI автоматически анализирует каждый тендер: оценивает релевантность, выявляет риски и даёт рекомендации по участию.</p>
+      </div>
+      <div class="step-card card">
+        <div class="step-number">Шаг 3</div>
+        <div class="step-icon">📬</div>
+        <h3>Получайте подборки</h3>
+        <p>Готовые подборки тендеров с AI-анализом в личном кабинете. Подходящие тендеры — сразу, без лишнего шума.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Pricing Preview -->
+<section id="pricing">
+  <div class="container">
+    <h2 class="text-center">Тарифы</h2>
+    <p class="text-center">Выберите подходящий план для вашего бизнеса</p>
+    <div class="pricing-grid">
+      <div class="pricing-card card">
+        <h3>Free</h3>
+        <div class="pricing-price">0 ₽</div>
+        <div class="pricing-period">навсегда</div>
+        <ul class="pricing-features">
+          <li>10 тендеров в месяц</li>
+          <li>1 подписка</li>
+          <li>Базовый AI-анализ</li>
+          <li>Поиск по 44-ФЗ и 223-ФЗ</li>
+          <li>Личный кабинет</li>
+        </ul>
+        <a href="/register" class="btn btn-secondary" style="width:100%">Начать</a>
+      </div>
+
+      <div class="pricing-card card popular">
+        <h3>Pro</h3>
+        <div class="pricing-price">1 990 ₽</div>
+        <div class="pricing-period">/ месяц</div>
+        <ul class="pricing-features">
+          <li>100 тендеров в месяц</li>
+          <li>5 подписок</li>
+          <li>Полный AI-анализ</li>
+          <li>Все возможности Free</li>
+          <li>Email-уведомления</li>
+          <li>История просмотров</li>
+        </ul>
+        <a href="/register" class="btn btn-primary" style="width:100%">Выбрать Pro</a>
+      </div>
+
+      <div class="pricing-card card">
+        <h3>Business</h3>
+        <div class="pricing-price">4 990 ₽</div>
+        <div class="pricing-period">/ месяц</div>
+        <ul class="pricing-features">
+          <li>500 тендеров в месяц</li>
+          <li>20 подписок</li>
+          <li>Приоритетный AI-анализ</li>
+          <li>Все возможности Pro</li>
+          <li>API доступ</li>
+          <li>Экспорт данных</li>
+          <li>Приоритетная поддержка</li>
+        </ul>
+        <a href="/register" class="btn btn-secondary" style="width:100%">Выбрать Business</a>
+      </div>
+    </div>
+    <p class="text-center mt-3">
+      <a href="/pricing" class="btn btn-ghost">Подробное сравнение тарифов →</a>
+    </p>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq">
+  <div class="container">
+    <h2 class="text-center">Часто задаваемые вопросы</h2>
+    <div class="faq-list">
+      <div class="faq-item" onclick="this.classList.toggle('open')">
+        <div class="faq-question">Какие источники использует TenderSearch?</div>
+        <div class="faq-answer">Мы парсим официальный портал zakupki.gov.ru — все тендеры по 44-ФЗ и 223-ФЗ. Данные обновляются каждый час.</div>
+      </div>
+      <div class="faq-item" onclick="this.classList.toggle('open')">
+        <div class="faq-question">Как работает AI-анализ тендеров?</div>
+        <div class="faq-answer">Для каждого тендера наша AI-модель (DeepSeek) анализирует документацию, оценивает релевантность от 1 до 10, выявляет риски и даёт рекомендацию: участвовать, рассмотреть или пропустить.</div>
+      </div>
+      <div class="faq-item" onclick="this.classList.toggle('open')">
+        <div class="faq-question">Можно ли поменять тариф?</div>
+        <div class="faq-answer">Да, вы можете сменить тариф в любой момент в личном кабинете. При переходе на более высокий тариф лимиты обновляются сразу.</div>
+      </div>
+      <div class="faq-item" onclick="this.classList.toggle('open')">
+        <div class="faq-question">Как создавать подписки?</div>
+        <div class="faq-answer">В личном кабинете укажите ключевые слова, тип закона (44-ФЗ/223-ФЗ), диапазон цен и регион. Система автоматически подберёт тендеры под ваши критерии.</div>
+      </div>
+      <div class="faq-item" onclick="this.classList.toggle('open')">
+        <div class="faq-question">Есть ли демо-доступ перед оплатой?</div>
+        <div class="faq-answer">Да! Тариф Free даёт доступ к 10 тендерам в месяц и 1 подписке без ограничений по времени. Идеально чтобы попробовать платформу.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section style="text-align:center;padding:80px 0">
+  <div class="container">
+    <h2>Готовы найти свой тендер?</h2>
+    <p style="max-width:500px;margin:16px auto 32px">Присоединяйтесь к сотням поставщиков, которые уже используют TenderSearch для поиска госзакупок.</p>
+    <a href="/register" class="btn btn-primary btn-lg">🔍 Начать бесплатно</a>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <p>© 2026 TenderSearch — AI-анализ тендеров госзакупок</p>
+    <p class="mt-1">Источник данных: <a href="https://zakupki.gov.ru" target="_blank" rel="noopener">zakupki.gov.ru</a></p>
+  </div>
+</footer>
+
+<script src="js/dashboard.js"></script>
+</body>
+</html>

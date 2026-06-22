@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Регистрация — TenderSearch</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="auth-page">
+
+<div class="auth-card card">
+  <h2>Регистрация</h2>
+  <p class="subtitle text-muted">Создайте аккаунт для доступа к AI-поиску тендеров</p>
+
+  <form id="register-form">
+    <div class="form-group">
+      <label for="name">Имя</label>
+      <input type="text" id="name" name="name" class="form-input" placeholder="Иван Петров">
+    </div>
+    <div class="form-group">
+      <label for="email">Email</label>
+      <input type="email" id="email" name="email" class="form-input" placeholder="you@example.com" required>
+    </div>
+    <div class="form-group">
+      <label for="password">Пароль</label>
+      <input type="password" id="password" name="password" class="form-input" placeholder="Минимум 6 символов" required minlength="6">
+    </div>
+    <div class="form-group">
+      <label for="password_confirm">Подтвердите пароль</label>
+      <input type="password" id="password_confirm" name="password_confirm" class="form-input" placeholder="••••••••" required minlength="6">
+    </div>
+    <div id="register-error" class="form-error" style="display:none;margin-bottom:12px"></div>
+    <button type="submit" class="btn btn-primary">Зарегистрироваться</button>
+  </form>
+
+  <p class="auth-link">
+    Уже есть аккаунт? <a href="/login">Войти</a>
+  </p>
+  <p class="auth-link">
+    <a href="/">← На главную</a>
+  </p>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/dashboard.js"></script>
+</body>
+</html>

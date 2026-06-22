@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Карточка тендера — TenderSearch</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="dashboard-layout">
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <a href="/dashboard" class="logo"><span class="icon">🔍</span> TenderSearch</a>
+  </div>
+  <ul class="sidebar-nav">
+    <li><a href="/dashboard"><span class="icon">📊</span> Обзор</a></li>
+    <li><a href="/dashboard/subscriptions.html"><span class="icon">📬</span> Подписки</a></li>
+    <li><a href="/dashboard/tenders.html" class="active"><span class="icon">📋</span> Тендеры</a></li>
+    <li><a href="/dashboard/profile.html"><span class="icon">👤</span> Профиль</a></li>
+    <li><a href="/dashboard/plan.html"><span class="icon">💳</span> Тариф</a></li>
+    <li style="margin-top:40px;padding-top:20px;border-top:1px solid var(--border)">
+      <a href="#" onclick="API.logout();return false"><span class="icon">🚪</span> Выйти</a>
+    </li>
+  </ul>
+</aside>
+
+<main class="main-content">
+  <div id="tender-content">
+    <div class="loading"><span class="spinner"></span> Загрузка тендера...</div>
+  </div>
+
+  <div id="ai-analysis"></div>
+</main>
+
+<script src="../js/api.js"></script>
+<script src="../js/dashboard.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  Dashboard.loadTenderDetail();
+});
+</script>
+</body>
+</html>

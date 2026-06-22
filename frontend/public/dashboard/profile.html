@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Профиль — TenderSearch</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="dashboard-layout">
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <a href="/dashboard" class="logo"><span class="icon">🔍</span> TenderSearch</a>
+  </div>
+  <ul class="sidebar-nav">
+    <li><a href="/dashboard"><span class="icon">📊</span> Обзор</a></li>
+    <li><a href="/dashboard/subscriptions.html"><span class="icon">📬</span> Подписки</a></li>
+    <li><a href="/dashboard/tenders.html"><span class="icon">📋</span> Тендеры</a></li>
+    <li><a href="/dashboard/profile.html" class="active"><span class="icon">👤</span> Профиль</a></li>
+    <li><a href="/dashboard/plan.html"><span class="icon">💳</span> Тариф</a></li>
+    <li style="margin-top:40px;padding-top:20px;border-top:1px solid var(--border)">
+      <a href="#" onclick="API.logout();return false"><span class="icon">🚪</span> Выйти</a>
+    </li>
+  </ul>
+</aside>
+
+<main class="main-content">
+  <div class="dashboard-header">
+    <div>
+      <h2>👤 Профиль</h2>
+      <p class="text-muted">Информация о вашем аккаунте</p>
+    </div>
+  </div>
+
+  <!-- Profile Info -->
+  <div class="card profile-section">
+    <h3>Основная информация</h3>
+    <div id="profile-info">
+      <div class="loading"><span class="spinner"></span> Загрузка профиля...</div>
+    </div>
+  </div>
+
+  <!-- Usage Stats -->
+  <div class="card profile-section">
+    <h3>Статистика использования</h3>
+    <div class="stats-grid">
+      <div class="stat-card card">
+        <div class="stat-value" id="usage-tenders">—</div>
+        <div class="stat-label">Просмотрено тендеров</div>
+      </div>
+      <div class="stat-card card">
+        <div class="stat-value" id="usage-subs">—</div>
+        <div class="stat-label">Активных подписок</div>
+      </div>
+      <div class="stat-card card">
+        <div class="stat-value" id="usage-matches">—</div>
+        <div class="stat-label">Всего совпадений</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="../js/api.js"></script>
+<script src="../js/dashboard.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  Dashboard.loadProfile();
+
+  // Load usage stats
+  try {
+    const user = await API.getMe();
+    document.getElementById('usage-tenders').textContent = user.tenders_viewed_this_month || 0;
+    const subs = await API.getSubscriptions();
+    document.getElementById('usage-subs').textContent = subs.length;
+    let totalMatches = 0;
+    for (const sub of subs) {
+      totalMatches += sub.match_count || 0;
+    }
+    document.getElementById('usage-matches').textContent = totalMatches;
+  } catch (e) {
+    console.error(e);
+  }
+});
+</script>
+</body>
+</html>

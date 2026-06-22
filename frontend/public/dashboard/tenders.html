@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Тендеры — TenderSearch</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="dashboard-layout">
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <a href="/dashboard" class="logo"><span class="icon">🔍</span> TenderSearch</a>
+  </div>
+  <ul class="sidebar-nav">
+    <li><a href="/dashboard"><span class="icon">📊</span> Обзор</a></li>
+    <li><a href="/dashboard/subscriptions.html"><span class="icon">📬</span> Подписки</a></li>
+    <li><a href="/dashboard/tenders.html" class="active"><span class="icon">📋</span> Тендеры</a></li>
+    <li><a href="/dashboard/profile.html"><span class="icon">👤</span> Профиль</a></li>
+    <li><a href="/dashboard/plan.html"><span class="icon">💳</span> Тариф</a></li>
+    <li style="margin-top:40px;padding-top:20px;border-top:1px solid var(--border)">
+      <a href="#" onclick="API.logout();return false"><span class="icon">🚪</span> Выйти</a>
+    </li>
+  </ul>
+</aside>
+
+<main class="main-content">
+  <div class="dashboard-header">
+    <div>
+      <h2>📋 Все тендеры</h2>
+      <p class="text-muted">Поиск и просмотр тендеров госзакупок</p>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="card mb-3">
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+      <div class="form-group" style="flex:1;min-width:200px;margin-bottom:0">
+        <label>Поиск</label>
+        <input type="text" id="search-q" class="form-input" placeholder="Ключевые слова..." onkeyup="if(event.key==='Enter')Dashboard.loadTenders(1)">
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label>Закон</label>
+        <select id="search-law" class="form-input" onchange="Dashboard.loadTenders(1)">
+          <option value="">Все</option>
+          <option value="44-ФЗ">44-ФЗ</option>
+          <option value="223-ФЗ">223-ФЗ</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label>Цена от</label>
+        <input type="number" id="search-price-min" class="form-input" placeholder="0" style="width:120px">
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label>Цена до</label>
+        <input type="number" id="search-price-max" class="form-input" placeholder="Любая" style="width:120px">
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="Dashboard.loadTenders(1)" style="margin-bottom:2px">🔍 Искать</button>
+    </div>
+  </div>
+
+  <!-- Tenders Table -->
+  <div class="card">
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Название</th>
+            <th>Заказчик</th>
+            <th>Цена</th>
+            <th>Дедлайн</th>
+            <th>Закон</th>
+          </tr>
+        </thead>
+        <tbody id="tenders-table-body">
+          <tr><td colspan="5" class="text-center"><span class="spinner"></span> Загрузка тендеров...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="tenders-pagination"></div>
+  </div>
+</main>
+
+<script src="../js/api.js"></script>
+<script src="../js/dashboard.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  Dashboard.loadTenders(1);
+});
+</script>
+</body>
+</html>
