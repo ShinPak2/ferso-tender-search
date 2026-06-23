@@ -248,83 +248,6 @@ async def get_tender_documents(
     ]
 
 
-# ── AI Analysis (h025ai-14) ────────────────────────────────────
-
-
-@router.get("/{tender_id}/analysis")
-async def get_tender_analysis(
-    tender_id: str,
-    db: AsyncSession = Depends(get_db),
-):
-    """Get the current AI analysis for a tender.
-
-    Returns the most recent is_current=1 TenderAnalysis row, or null if
-    no analysis has run yet (frontend will display a placeholder).
-    """
-    from sqlalchemy import select
-
-    from ..models.tender_analysis import TenderAnalysis
-
-    result = await db.execute(
-        select(TenderAnalysis)
-        .where(TenderAnalysis.tender_id == tender_id)
-        .where(TenderAnalysis.is_current == 1)
-        .order_by(TenderAnalysis.analyzed_at.desc())
-        .limit(1)
-    )
-    analysis = result.scalar_one_or_none()
-    if not analysis:
-        return None
-    return {
-        "id": str(analysis.id),
-        "tender_id": str(analysis.tender_id),
-        "source": analysis.source,
-        "version": analysis.version,
-        "subject": analysis.subject,
-        "okpd2_extracted": analysis.okpd2_extracted or [],
-        "okved2_extracted": analysis.okved2_extracted or [],
-        "regions_extracted": analysis.regions_extracted or [],
-        "requirements": analysis.requirements or {},
-        "financial": analysis.financial or {},
-        "deadlines": analysis.deadlines or {},
-        "criteria": analysis.criteria or [],
-        "confidence_score": analysis.confidence_score,
-        "citations": analysis.citations or {},
-        "nmck_outlier_warning": analysis.nmck_outlier_warning,
-        "analyzed_at": (
-            analysis.analyzed_at.isoformat() if analysis.analyzed_at else None
-        ),
-    }
-
-
-# ── Match verdict (h025ai-14) ──────────────────────────────────
-
-
-@router.get("/{tender_id}/match")
-async def get_tender_match(
-    tender_id: str,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """Get the supplier-profile × tender match verdict for the current user.
-
-    Uses h025ai-10 matcher. Returns:
-      {
-        verdict: 'match' | 'review' | 'no_match',
-        score: 0-100,
-        breakdown: { okpd2_score, ..., nmck_outlier_warning, discount, ... },
-        reasons: [...]
-      }
-    or null if the user has no supplier profile yet.
-    """
-    result = await match_tender_for_user(
-        user_id=str(current_user.id), tender_id=tender_id, db=db
-    )
-    if result is None:
-        return None
-    return result.to_dict()
-
-
 # ── h025ai-14: AI analysis + match endpoints ─────────────────
 
 
@@ -551,29 +474,20 @@ async def match_tender(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Compute match verdict + score for current user vs tender (h025ai-10/14)."""
-    from ..models.supplier_profile import SupplierProfile
-    from ..models.tender_analysis import TenderAnalysis
-    from ..services.matcher import match_tender_to_supplier
+    """Compute match verdict + score for current user vs tender (h025ai-10/14).
 
-    tender_result = await db.execute(select(Tender).where(Tender.id == tender_id))
-    tender = tender_result.scalar_one_or_none()
-    if not tender:
-        raise HTTPException(status_code=404, detail="Tender not found")
-
-    profile_result = await db.execute(
-        select(SupplierProfile).where(SupplierProfile.user_id == current_user.id)
+    Uses h025ai-10 matcher. Returns:
+      {
+        verdict: 'match' | 'review' | 'no_match',
+        score: 0-100,
+        breakdown: { okpd2_score, ..., nmck_outlier_warning, discount, ... },
+        reasons: [...]
+      }
+    or null if the user has no supplier profile yet.
+    """
+    result = await match_tender_for_user(
+        user_id=str(current_user.id), tender_id=tender_id, db=db
     )
-    profile = profile_result.scalar_one_or_none()
-
-    analysis_result = await db.execute(
-        select(TenderAnalysis)
-        .where(TenderAnalysis.tender_id == tender_id)
-        .where(TenderAnalysis.is_current == 1)
-        .order_by(TenderAnalysis.analyzed_at.desc())
-        .limit(1)
-    )
-    analysis = analysis_result.scalar_one_or_none()
-
-    result = match_tender_to_supplier(profile, tender, analysis)
+    if result is None:
+        return None
     return result.to_dict()
