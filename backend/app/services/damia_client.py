@@ -132,12 +132,14 @@ _cache = _DamiaCache()
 # ── Mapping helpers ──────────────────────────────────────────────
 
 
-def _okved2_to_okpd2(okved_codes: list[str]) -> list[str]:
+def _okved2_to_okpd2(okved_codes: list[str] | None) -> list[str]:
     """Naive mapping OKVED2 → OKPD2.
 
     In OKVED2/OKPD2 the first 4 digits are identical for the same product
     class. We keep this simple for MVP; the user can edit later.
     """
+    if not okved_codes:
+        return []
     out: list[str] = []
     seen: set[str] = set()
     for code in okved_codes:

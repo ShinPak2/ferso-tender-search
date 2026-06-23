@@ -345,10 +345,13 @@ def test_scenario_9_empty_profile():
     analysis = _make_analysis()
 
     result = match_profile_to_analysis(profile, tender, analysis)
-    # No okpd2 + no regions + neutral price + neutral time
-    # = 0 + 10 + 20 + 20 + 10 = 60
-    assert result.score >= 50
-    assert result.verdict in (VERDICT_REVIEW, VERDICT_MATCH)
+    # Empty ОКПД2 → okpd2_score=0 → no_match trigger per spec
+    assert result.verdict == VERDICT_NO_MATCH
+    assert result.breakdown.okpd2_score == 0
+    assert result.breakdown.region_score == 10  # neutral
+    # Sum is neutral (limits not set), licenses neutral, time partial
+    assert result.score >= 40
+    assert result.score <= 70
 
 
 # ── Scenario 10: procedure-type filter (allowed_procedure_types) ─
