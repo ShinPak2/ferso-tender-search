@@ -69,12 +69,12 @@
     "failed": 0,
     "breakdown": {
       "test_damia_client.py": 18,
-      "test_ai_extraction.py": 17,
+      "test_ai_extraction.py": 20,
       "test_matcher.py": 28,
       "test_document_parser.py": 17
     },
     "command": "cd backend && python3 -m pytest tests/ -v",
-    "result_line": "83 passed in 1.34s"
+    "result_line": "83 passed in 1.51s"
   },
   "commits_added": [
     "10469ea feat(H025): h025ai-15 DaMIA API-ФНС client + supplier profile router",
@@ -85,10 +85,11 @@
     "45f66b3 feat(H025): h025ai-14 tender-detail.html redesign + analysis/match endpoints",
     "1b0b220 docs(H025): code review of dashboard.js auth-fix commits",
     "1236895 fix(H025): tests conftest + model package split + regex group bug",
-    "a2874d6 docs(H025): HANDOFF_dev_to_devops.md — full task list, deploy steps, env vars, tests"
+    "a2874d6 docs(H025): HANDOFF_dev_to_devops.md — full task list, deploy steps, env vars, tests",
+    "ae6a6af fix(H025): dedupe tender router endpoints + SPEC v1.2 (data-source arch)"
   ],
   "branch": "main",
-  "commits_ahead_of_origin": 10,
+  "commits_ahead_of_origin": 12,
   "env_vars_recommended": [
     "DAMIA_API_KEY",
     "DEEPSEEK_API_KEY",
