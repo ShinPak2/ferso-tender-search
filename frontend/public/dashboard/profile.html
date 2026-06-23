@@ -5,6 +5,115 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Профиль — TenderSearch</title>
   <link rel="stylesheet" href="../css/style.css">
+  <style>
+    .wizard-steps {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .wizard-step {
+      flex: 1;
+      min-width: 120px;
+      padding: 0.6rem 0.8rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      text-align: center;
+      font-size: 0.85rem;
+      opacity: 0.5;
+      transition: opacity 0.2s, border-color 0.2s, background 0.2s;
+    }
+    .wizard-step.active {
+      opacity: 1;
+      border-color: var(--accent-purple);
+      background: var(--bg-card-hover);
+    }
+    .wizard-step.done {
+      opacity: 1;
+      border-color: var(--accent-green);
+      color: var(--accent-green);
+    }
+    .wizard-step .num {
+      display: inline-block;
+      width: 22px;
+      height: 22px;
+      line-height: 22px;
+      border-radius: 50%;
+      background: var(--border-light);
+      margin-right: 6px;
+      font-weight: 700;
+    }
+    .wizard-step.active .num { background: var(--accent-purple); color: white; }
+    .wizard-step.done .num { background: var(--accent-green); color: white; }
+
+    .wizard-panel { display: none; }
+    .wizard-panel.active { display: block; }
+
+    .form-help { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
+    .chip-list { display: flex; flex-wrap: wrap; gap: 6px; min-height: 32px; padding: 4px; }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--accent-purple);
+      color: white;
+      padding: 4px 10px;
+      border-radius: 14px;
+      font-size: 0.85rem;
+    }
+    .chip .x { cursor: pointer; opacity: 0.7; }
+    .chip .x:hover { opacity: 1; }
+
+    .wizard-actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-top: 2rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .egrul-banner {
+      padding: 1rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-bottom: 1rem;
+    }
+    .egrul-banner.ok { border-color: var(--accent-green); }
+    .egrul-banner.err { border-color: var(--accent-red); }
+
+    .egrul-suggest {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 0.5rem;
+    }
+    .egrul-suggest .chip { background: var(--accent-blue); }
+
+    .license-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .license-row input { width: 100%; }
+
+    .spinner-inline {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid var(--border-light);
+      border-top-color: var(--accent-purple);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      vertical-align: middle;
+      margin-right: 4px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
 </head>
 <body class="dashboard-layout">
 
@@ -27,60 +136,438 @@
 <main class="main-content">
   <div class="dashboard-header">
     <div>
-      <h2>👤 Профиль</h2>
-      <p class="text-muted">Информация о вашем аккаунте</p>
+      <h2>👤 Профиль поставщика</h2>
+      <p class="text-muted">Настройте данные для AI-матчинга тендеров</p>
     </div>
   </div>
 
-  <!-- Profile Info -->
-  <div class="card profile-section">
-    <h3>Основная информация</h3>
-    <div id="profile-info">
-      <div class="loading"><span class="spinner"></span> Загрузка профиля...</div>
-    </div>
+  <!-- Wizard Stepper -->
+  <div class="wizard-steps" id="wizard-steps">
+    <div class="wizard-step active" data-step="1"><span class="num">1</span> ИНН</div>
+    <div class="wizard-step" data-step="2"><span class="num">2</span> ОКПД2 / ОКВЭД2</div>
+    <div class="wizard-step" data-step="3"><span class="num">3</span> Лицензии</div>
+    <div class="wizard-step" data-step="4"><span class="num">4</span> Регионы</div>
+    <div class="wizard-step" data-step="5"><span class="num">5</span> Финлимиты</div>
   </div>
 
-  <!-- Usage Stats -->
-  <div class="card profile-section">
-    <h3>Статистика использования</h3>
-    <div class="stats-grid">
-      <div class="stat-card card">
-        <div class="stat-value" id="usage-tenders">—</div>
-        <div class="stat-label">Просмотрено тендеров</div>
+  <form id="profile-form" class="card">
+    <!-- Step 1: ИНН + EGRUL -->
+    <div class="wizard-panel active" data-step="1">
+      <h3>Шаг 1. ИНН и реквизиты</h3>
+      <p class="form-help">Введите ИНН — мы автоматически подтянем реквизиты из ЕГРЮЛ (DaMIA API-ФНС).</p>
+
+      <div class="form-group">
+        <label for="inn">ИНН <span style="color: var(--accent-red)">*</span></label>
+        <div style="display: flex; gap: 8px;">
+          <input class="form-input" id="inn" name="inn" placeholder="10 или 12 цифр" maxlength="12" inputmode="numeric" pattern="[0-9]{10,12}">
+          <button type="button" class="btn btn-secondary" id="btn-egrul">🔍 Найти в ЕГРЮЛ</button>
+        </div>
+        <p class="form-help">Юрлицо (10) или ИП (12)</p>
       </div>
-      <div class="stat-card card">
-        <div class="stat-value" id="usage-subs">—</div>
-        <div class="stat-label">Активных подписок</div>
+
+      <div id="egrul-result"></div>
+
+      <div class="form-group">
+        <label for="ogrn">ОГРН</label>
+        <input class="form-input" id="ogrn" name="ogrn" maxlength="15" placeholder="заполнится автоматически">
       </div>
-      <div class="stat-card card">
-        <div class="stat-value" id="usage-matches">—</div>
-        <div class="stat-label">Всего совпадений</div>
+
+      <div class="form-group">
+        <label for="kpp">КПП</label>
+        <input class="form-input" id="kpp" name="kpp" maxlength="9" placeholder="заполнится автоматически">
+      </div>
+
+      <div class="form-group">
+        <label for="legal_name">Полное наименование</label>
+        <input class="form-input" id="legal_name" name="legal_name" placeholder="ООО «Ромашка»">
+      </div>
+
+      <div class="form-group">
+        <label for="legal_address">Юридический адрес</label>
+        <input class="form-input" id="legal_address" name="legal_address" placeholder="г Москва, ул ...">
       </div>
     </div>
-  </div>
+
+    <!-- Step 2: ОКПД2 / ОКВЭД2 -->
+    <div class="wizard-panel" data-step="2">
+      <h3>Шаг 2. Коды деятельности</h3>
+      <p class="form-help">Укажите ОКПД2 (что поставляете) и/или ОКВЭД2 (чем занимаетесь). Можно несколько через Enter.</p>
+
+      <div class="form-group">
+        <label>ОКПД2 (товары/услуги для тендеров)</label>
+        <div class="chip-list" id="okpd2-chips"></div>
+        <input class="form-input" id="okpd2-input" placeholder="например 26.20.2, нажмите Enter">
+        <p class="form-help">Формат: XX.XX.X.XX. Можно подсмотреть в ЕГРЮЛ — мы подставили подсказки.</p>
+      </div>
+
+      <div class="form-group">
+        <label>ОКВЭД2 (ваши виды деятельности)</label>
+        <div class="chip-list" id="okved2-chips"></div>
+        <input class="form-input" id="okved2-input" placeholder="например 62.01, нажмите Enter">
+      </div>
+    </div>
+
+    <!-- Step 3: Лицензии -->
+    <div class="wizard-panel" data-step="3">
+      <h3>Шаг 3. Лицензии и сертификаты</h3>
+      <p class="form-help">Если у вас есть ФСТЭК, ФСБ, СРО, ISO — укажите. Это влияет на матчинг.</p>
+
+      <div id="licenses-list"></div>
+      <button type="button" class="btn btn-ghost btn-sm" id="btn-add-license">+ Добавить лицензию</button>
+    </div>
+
+    <!-- Step 4: Регионы -->
+    <div class="wizard-panel" data-step="4">
+      <h3>Шаг 4. Регионы присутствия</h3>
+      <p class="form-help">В каких регионах готовы работать. Можно указать страну (например, "Вся Россия").</p>
+
+      <div class="chip-list" id="regions-chips"></div>
+      <input class="form-input" id="region-input" placeholder="например Москва, нажмите Enter">
+
+      <div class="form-help" style="margin-top: 0.5rem;">Популярные:</div>
+      <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+        <button type="button" class="btn btn-sm btn-ghost" data-region="Москва">+ Москва</button>
+        <button type="button" class="btn btn-sm btn-ghost" data-region="Санкт-Петербург">+ Санкт-Петербург</button>
+        <button type="button" class="btn btn-sm btn-ghost" data-region="Вся Россия">+ Вся Россия</button>
+        <button type="button" class="btn btn-sm btn-ghost" data-region="Московская область">+ Московская область</button>
+      </div>
+    </div>
+
+    <!-- Step 5: Финлимиты -->
+    <div class="wizard-panel" data-step="5">
+      <h3>Шаг 5. Финансовые лимиты</h3>
+      <p class="form-help">В каком диапазоне сумм вам интересны тендеры. Макс. обеспечение — сколько можете заложить.</p>
+
+      <div class="form-group">
+        <label>Минимальная сумма контракта, ₽</label>
+        <input class="form-input" id="min_contract_sum" type="number" min="0" step="1000" placeholder="например 100 000">
+      </div>
+
+      <div class="form-group">
+        <label>Максимальная сумма контракта, ₽</label>
+        <input class="form-input" id="max_contract_sum" type="number" min="0" step="1000" placeholder="например 50 000 000">
+      </div>
+
+      <div class="form-group">
+        <label>Макс. размер обеспечения (₽)</label>
+        <input class="form-input" id="max_guarantee_sum" type="number" min="0" step="1000" placeholder="например 5 000 000">
+        <p class="form-help">Если у тендера требуется обеспечение больше — мы покажем предупреждение ⚠️</p>
+      </div>
+
+      <div class="form-group">
+        <label>Допустимые типы процедур</label>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.5rem;">
+          <label><input type="checkbox" name="proc" value="auction" checked> Аукцион</label>
+          <label><input type="checkbox" name="proc" value="tender" checked> Конкурс</label>
+          <label><input type="checkbox" name="proc" value="request_for_quotes" checked> Запрос котировок</label>
+          <label><input type="checkbox" name="proc" value="single_supplier"> Единственный поставщик</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="wizard-actions">
+      <button type="button" class="btn btn-ghost" id="btn-prev" disabled>← Назад</button>
+      <div>
+        <button type="button" class="btn btn-secondary" id="btn-save-draft">Сохранить черновик</button>
+        <button type="button" class="btn btn-primary" id="btn-next">Далее →</button>
+        <button type="button" class="btn btn-primary" id="btn-finish" style="display:none;">💾 Сохранить профиль</button>
+      </div>
+    </div>
+  </form>
 </main>
 
 <script src="../js/api.js"></script>
 <script src="../js/dashboard.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', async () => {
-  Dashboard.loadProfile();
+const ProfileWizard = (() => {
+  let currentStep = 1;
+  const TOTAL = 5;
 
-  // Load usage stats
-  try {
-    const user = await API.getMe();
-    document.getElementById('usage-tenders').textContent = user.tenders_viewed_this_month || 0;
-    const subs = await API.getSubscriptions();
-    document.getElementById('usage-subs').textContent = subs.length;
-    let totalMatches = 0;
-    for (const sub of subs) {
-      totalMatches += sub.match_count || 0;
-    }
-    document.getElementById('usage-matches').textContent = totalMatches;
-  } catch (e) {
-    console.error(e);
+  const state = {
+    inn: '', ogrn: '', kpp: '', legal_name: '', legal_address: '',
+    okpd2_codes: [],
+    okved2_codes: [],
+    licenses: [],
+    regions: [],
+    min_contract_sum: null,
+    max_contract_sum: null,
+    max_guarantee_sum: null,
+    allowed_procedure_types: ['auction', 'tender', 'request_for_quotes'],
+  };
+
+  // ── Step navigation ──────────────────────────────────────
+
+  function gotoStep(n) {
+    if (n < 1 || n > TOTAL) return;
+    currentStep = n;
+    document.querySelectorAll('.wizard-step').forEach(el => {
+      const s = parseInt(el.dataset.step, 10);
+      el.classList.remove('active', 'done');
+      if (s === n) el.classList.add('active');
+      else if (s < n) el.classList.add('done');
+    });
+    document.querySelectorAll('.wizard-panel').forEach(p => {
+      p.classList.toggle('active', parseInt(p.dataset.step, 10) === n);
+    });
+    document.getElementById('btn-prev').disabled = (n === 1);
+    document.getElementById('btn-next').style.display = (n === TOTAL) ? 'none' : '';
+    document.getElementById('btn-finish').style.display = (n === TOTAL) ? '' : 'none';
   }
-});
+
+  // ── Chips (ОКПД2, ОКВЭД2, Регионы) ───────────────────────
+
+  function renderChips(containerId, items, onRemove) {
+    const c = document.getElementById(containerId);
+    if (!c) return;
+    c.innerHTML = items.map((v, i) =>
+      `<span class="chip">${escapeHtml(v)} <span class="x" data-idx="${i}">×</span></span>`
+    ).join('');
+    c.querySelectorAll('.x').forEach(x => {
+      x.addEventListener('click', e => {
+        const idx = parseInt(e.target.dataset.idx, 10);
+        items.splice(idx, 1);
+        renderChips(containerId, items, onRemove);
+        onRemove();
+      });
+    });
+  }
+
+  function setupChipInput(inputId, containerId, target, validator) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault();
+        const v = input.value.trim();
+        if (v && !target.includes(v)) {
+          if (validator && !validator(v)) {
+            Dashboard.showToast('Неверный формат: ' + v, 'error');
+            return;
+          }
+          target.push(v);
+          renderChips(containerId, target, () => {});
+          input.value = '';
+        }
+      }
+    });
+  }
+
+  // ── Licenses ────────────────────────────────────────────
+
+  function renderLicenses() {
+    const c = document.getElementById('licenses-list');
+    if (!c) return;
+    if (state.licenses.length === 0) {
+      c.innerHTML = '<p class="form-help">Лицензий пока нет. Нажмите «Добавить».</p>';
+      return;
+    }
+    c.innerHTML = state.licenses.map((l, i) => `
+      <div class="license-row" data-idx="${i}">
+        <input class="form-input" placeholder="Тип (ФСТЭК, СРО, ISO 9001)" data-field="type" value="${escapeHtml(l.type||'')}">
+        <input class="form-input" placeholder="Уровень" data-field="level" value="${escapeHtml(l.level||'')}">
+        <input class="form-input" placeholder="Номер" data-field="number" value="${escapeHtml(l.number||'')}">
+        <input class="form-input" type="date" data-field="issued_at" value="${escapeHtml(l.issued_at||'')}" title="Дата выдачи">
+        <input class="form-input" type="date" data-field="valid_until" value="${escapeHtml(l.valid_until||'')}" title="Действует до">
+        <button type="button" class="btn btn-ghost btn-sm" data-action="remove">×</button>
+      </div>
+    `).join('');
+    c.querySelectorAll('.license-row').forEach(row => {
+      const idx = parseInt(row.dataset.idx, 10);
+      row.querySelectorAll('[data-field]').forEach(inp => {
+        inp.addEventListener('input', e => {
+          state.licenses[idx][e.target.dataset.field] = e.target.value;
+        });
+      });
+      row.querySelector('[data-action="remove"]').addEventListener('click', () => {
+        state.licenses.splice(idx, 1);
+        renderLicenses();
+      });
+    });
+  }
+
+  // ── EGRUL fetch (h025ai-15) ─────────────────────────────
+
+  async function fetchEgrul() {
+    const inn = document.getElementById('inn').value.trim();
+    if (!/^\d{10,12}$/.test(inn)) {
+      Dashboard.showToast('Введите ИНН (10 или 12 цифр)', 'error');
+      return;
+    }
+    const btn = document.getElementById('btn-egrul');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-inline"></span> Ищем...';
+    try {
+      const data = await API.request(`/profile/egrul/${inn}`);
+      document.getElementById('ogrn').value = data.ogrn || '';
+      document.getElementById('kpp').value = data.kpp || '';
+      document.getElementById('legal_name').value = data.legal_name || '';
+      document.getElementById('legal_address').value = data.legal_address || '';
+      state.inn = inn;
+      state.ogrn = data.ogrn || '';
+      state.kpp = data.kpp || '';
+      state.legal_name = data.legal_name || '';
+      state.legal_address = data.legal_address || '';
+      // Auto-fill OKVED2/OKPD2 suggestions if empty
+      if (state.okved2_codes.length === 0 && data.okved2_codes?.length) {
+        state.okved2_codes = data.okved2_codes.slice(0, 5);
+        renderChips('okved2-chips', state.okved2_codes, () => {});
+      }
+      if (state.okpd2_codes.length === 0 && data.okpd2_suggested?.length) {
+        state.okpd2_codes = data.okpd2_suggested.slice(0, 5);
+        renderChips('okpd2-chips', state.okpd2_codes, () => {});
+      }
+      const banner = document.getElementById('egrul-result');
+      banner.innerHTML = `
+        <div class="egrul-banner ok">
+          ✅ Найдено: <strong>${escapeHtml(data.legal_name || inn)}</strong>
+          <div class="form-help" style="margin-top: 0.5rem;">Статус: ${escapeHtml(data.status || '—')} · ОКВЭД2: ${(data.okved2_codes||[]).slice(0,3).join(', ')}</div>
+        </div>`;
+    } catch (e) {
+      const banner = document.getElementById('egrul-result');
+      let msg = e.message || 'Ошибка';
+      if (msg.includes('503')) {
+        msg = 'Сервис ЕГРЮЛ временно недоступен. Заполните реквизиты вручную или повторите позже.';
+      } else if (msg.includes('404')) {
+        msg = `Компания с ИНН ${inn} не найдена. Проверьте правильность.`;
+      }
+      banner.innerHTML = `<div class="egrul-banner err">⚠️ ${escapeHtml(msg)}</div>`;
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '🔍 Найти в ЕГРЮЛ';
+    }
+  }
+
+  // ── Hydrate from server ────────────────────────────────
+
+  async function load() {
+    try {
+      const p = await API.request('/profile/me');
+      state.inn = p.inn || '';
+      state.ogrn = p.ogrn || '';
+      state.kpp = p.kpp || '';
+      state.legal_name = p.legal_name || '';
+      state.legal_address = p.legal_address || '';
+      state.okpd2_codes = p.okpd2_codes || [];
+      state.okved2_codes = p.okved2_codes || [];
+      state.licenses = p.licenses || [];
+      state.regions = p.regions || [];
+      state.min_contract_sum = p.min_contract_sum;
+      state.max_contract_sum = p.max_contract_sum;
+      state.max_guarantee_sum = p.max_guarantee_sum;
+      state.allowed_procedure_types = p.allowed_procedure_types || ['auction', 'tender'];
+
+      document.getElementById('inn').value = state.inn;
+      document.getElementById('ogrn').value = state.ogrn;
+      document.getElementById('kpp').value = state.kpp;
+      document.getElementById('legal_name').value = state.legal_name;
+      document.getElementById('legal_address').value = state.legal_address;
+      document.getElementById('min_contract_sum').value = state.min_contract_sum ?? '';
+      document.getElementById('max_contract_sum').value = state.max_contract_sum ?? '';
+      document.getElementById('max_guarantee_sum').value = state.max_guarantee_sum ?? '';
+      document.querySelectorAll('input[name="proc"]').forEach(cb => {
+        cb.checked = state.allowed_procedure_types.includes(cb.value);
+      });
+
+      renderChips('okpd2-chips', state.okpd2_codes, () => {});
+      renderChips('okved2-chips', state.okved2_codes, () => {});
+      renderChips('regions-chips', state.regions, () => {});
+      renderLicenses();
+    } catch (e) {
+      console.error('Profile load error:', e);
+    }
+  }
+
+  // ── Save ───────────────────────────────────────────────
+
+  function collectForm() {
+    state.inn = document.getElementById('inn').value.trim();
+    state.ogrn = document.getElementById('ogrn').value.trim();
+    state.kpp = document.getElementById('kpp').value.trim();
+    state.legal_name = document.getElementById('legal_name').value.trim();
+    state.legal_address = document.getElementById('legal_address').value.trim();
+    state.min_contract_sum = parseFloat(document.getElementById('min_contract_sum').value) || null;
+    state.max_contract_sum = parseFloat(document.getElementById('max_contract_sum').value) || null;
+    state.max_guarantee_sum = parseFloat(document.getElementById('max_guarantee_sum').value) || null;
+    state.allowed_procedure_types = Array.from(document.querySelectorAll('input[name="proc"]:checked'))
+      .map(cb => cb.value);
+  }
+
+  async function save() {
+    collectForm();
+    if (!state.inn) {
+      Dashboard.showToast('Сначала укажите ИНН', 'error');
+      gotoStep(1);
+      return null;
+    }
+    try {
+      const res = await API.request('/profile', {
+        method: 'POST',
+        body: JSON.stringify(state),
+      });
+      Dashboard.showToast('Профиль сохранён', 'success');
+      return res;
+    } catch (e) {
+      Dashboard.showToast('Ошибка: ' + e.message, 'error');
+      return null;
+    }
+  }
+
+  // ── Init ───────────────────────────────────────────────
+
+  function init() {
+    if (!Dashboard.requireAuth()) return;
+    load();
+
+    document.getElementById('btn-egrul').addEventListener('click', fetchEgrul);
+    document.getElementById('btn-prev').addEventListener('click', () => gotoStep(currentStep - 1));
+    document.getElementById('btn-next').addEventListener('click', () => gotoStep(currentStep + 1));
+    document.getElementById('btn-save-draft').addEventListener('click', save);
+    document.getElementById('btn-finish').addEventListener('click', async () => {
+      const r = await save();
+      if (r) {
+        Dashboard.showToast('Профиль сохранён! Можно создавать подписки.', 'success');
+        setTimeout(() => location.href = '/dashboard/subscriptions.html', 1200);
+      }
+    });
+
+    setupChipInput('okpd2-input', 'okpd2-chips', state.okpd2_codes,
+      v => /^\d{2}(\.\d{1,2}){0,2}(\.\d{1,3})?$/.test(v));
+    setupChipInput('okved2-input', 'okved2-chips', state.okved2_codes,
+      v => /^\d{2}(\.\d{1,2}){0,2}(\.\d{1,3})?$/.test(v));
+    setupChipInput('region-input', 'regions-chips', state.regions);
+
+    document.getElementById('btn-add-license').addEventListener('click', () => {
+      state.licenses.push({ type: '', level: '', number: '', issued_at: '', valid_until: '' });
+      renderLicenses();
+    });
+
+    document.querySelectorAll('[data-region]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const r = btn.dataset.region;
+        if (!state.regions.includes(r)) {
+          state.regions.push(r);
+          renderChips('regions-chips', state.regions, () => {});
+        }
+      });
+    });
+  }
+
+  return { init, gotoStep, save };
+})();
+
+function escapeHtml(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => ProfileWizard.init());
+} else {
+  ProfileWizard.init();
+}
 </script>
 </body>
 </html>
