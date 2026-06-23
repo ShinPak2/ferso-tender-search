@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QA-панель — TenderSearch</title>
+  <title>QA-панель — TenderSearch H025</title>
   <link rel="stylesheet" href="css/style.css">
   <link rel="icon" type="image/svg+xml" href="/img/favicon.svg">
 </head>
@@ -17,6 +17,7 @@
         <li><a href="/">Лендинг</a></li>
         <li><a href="/tester">QA</a></li>
         <li><a href="/marketing">Маркетинг</a></li>
+        <li><a href="https://github.com/ShinPak2/ferso-tender-search" target="_blank">GitHub</a></li>
       </ul>
     </nav>
   </div>
@@ -24,140 +25,305 @@
 
 <main style="padding:100px 24px 60px">
   <div class="container">
-    <h1>QA-панель тестировщика</h1>
-    <p class="text-muted">Чек-листы по секциям для ручного и автоматического тестирования</p>
 
-    <div class="tester-check-grid mt-3">
-      <!-- Auth -->
-      <div class="tester-section">
-        <h4>🔐 Auth</h4>
-        <label class="checklist-item"><input type="checkbox"> Регистрация нового пользователя (валидные данные)</label>
-        <label class="checklist-item"><input type="checkbox"> Регистрация с уже существующим email (ошибка)</label>
-        <label class="checklist-item"><input type="checkbox"> Регистрация с коротким паролем (ошибка)</label>
-        <label class="checklist-item"><input type="checkbox"> Вход с корректными данными</label>
-        <label class="checklist-item"><input type="checkbox"> Вход с неверным паролем (401)</label>
-        <label class="checklist-item"><input type="checkbox"> Вход с несуществующим email (401)</label>
-        <label class="checklist-item"><input type="checkbox"> GET /api/auth/me с токеном (возвращает профиль)</label>
-        <label class="checklist-item"><input type="checkbox"> GET /api/auth/me без токена (401)</label>
-        <label class="checklist-item"><input type="checkbox"> JWT expire: доступ после истечения (401)</label>
-        <label class="checklist-item"><input type="checkbox"> Пароль не возвращается в API-ответах</label>
-      </div>
+    <h1>🧪 QA-панель тестировщика</h1>
+    <p class="text-muted">
+      TenderSearch H025 — ручное тестирование перед запуском. <strong>v0.1 MVP</strong>, последнее обновление 2026-06-23.
+    </p>
 
-      <!-- Tenders -->
-      <div class="tester-section">
-        <h4>📋 Поиск тендеров</h4>
-        <label class="checklist-item"><input type="checkbox"> GET /api/tenders (без фильтров) — список</label>
-        <label class="checklist-item"><input type="checkbox"> GET /api/tenders?q=keyword (поиск по названию)</label>
-        <label class="checklist-item"><input type="checkbox"> GET /api/tenders?law_type=44-ФЗ (фильтр по закону)</label>
-        <label class="checklist-item"><input type="checkbox"> GET /api/tenders?price_min=100000&price_max=5000000</label>
-        <label class="checklist-item"><input type="checkbox"> GET /api/tenders?region=Москва (по региону)</label>
-        <label class="checklist-item"><input type="checkbox"> Пагинация: page=1&page_size=5</label>
-        <label class="checklist-item"><input type="checkbox"> GET /api/tenders/:id — детали тендера</label>
-        <label class="checklist-item"><input type="checkbox"> GET /api/tenders/:id/documents — документы</label>
-        <label class="checklist-item"><input type="checkbox"> 404 для несуществующего тендера</label>
-        <label class="checklist-item"><input type="checkbox"> AI-анализ создаётся при просмотре</label>
-      </div>
+    <!-- ─── 1. ОКРУЖЕНИЕ И ТЕСТОВЫЕ ДАННЫЕ ──────────────── -->
+    <section class="qa-section" id="env">
+      <h2>1. Окружение и тестовые данные</h2>
+      <p class="text-muted" style="margin-bottom:16px">
+        Перед началом убедись, что окружение соответствует описанию ниже. Это поможет в случае воспроизведения дефектов.
+      </p>
 
-      <!-- Subscriptions -->
-      <div class="tester-section">
-        <h4>📬 Подписки</h4>
-        <label class="checklist-item"><input type="checkbox"> POST /api/subscriptions — создать подписку</label>
-        <label class="checklist-item"><input type="checkbox"> Валидация: пустое имя (ошибка)</label>
-        <label class="checklist-item"><input type="checkbox"> Лимит подписок Free (1), Pro (5), Business (20)</label>
-        <label class="checklist-item"><input type="checkbox"> GET /api/subscriptions — список с match_count</label>
-        <label class="checklist-item"><input type="checkbox"> DELETE /api/subscriptions/:id — удаление</label>
-        <label class="checklist-item"><input type="checkbox"> Нельзя удалить чужую подписку (403/404)</label>
-        <label class="checklist-item"><input type="checkbox"> GET /api/subscriptions/:id/matches — подборки</label>
-        <label class="checklist-item"><input type="checkbox"> Матчер срабатывает при парсинге</label>
+      <div class="qa-env-card">
+        <h3>🌐 Production (тестируем тут)</h3>
+        <div class="qa-env-grid">
+          <div class="qa-env-item">
+            <div class="qa-env-label">URL</div>
+            <div class="qa-env-value"><a href="https://tenders.ivoryhome.ru" target="_blank">https://tenders.ivoryhome.ru</a></div>
+          </div>
+          <div class="qa-env-item">
+            <div class="qa-env-label">Backend API</div>
+            <div class="qa-env-value">https://tenders.ivoryhome.ru/api</div>
+          </div>
+          <div class="qa-env-item">
+            <div class="qa-env-label">Frontend</div>
+            <div class="qa-env-value">nginx → статика</div>
+          </div>
+          <div class="qa-env-item">
+            <div class="qa-env-label">База данных</div>
+            <div class="qa-env-value">PostgreSQL 16 (Docker: h025-postgres)</div>
+          </div>
+          <div class="qa-env-item">
+            <div class="qa-env-label">Сервер</div>
+            <div class="qa-env-value">82.26.150.184 (root)</div>
+          </div>
+          <div class="qa-env-item">
+            <div class="qa-env-label">GitHub</div>
+            <div class="qa-env-value"><a href="https://github.com/ShinPak2/ferso-tender-search" target="_blank">ShinPak2/ferso-tender-search</a></div>
+          </div>
+        </div>
       </div>
 
-      <!-- AI Analysis -->
-      <div class="tester-section">
-        <h4>🤖 AI-анализ</h4>
-        <label class="checklist-item"><input type="checkbox"> AI анализ создаётся при GET /api/tenders/:id</label>
-        <label class="checklist-item"><input type="checkbox"> Поля: analysis, relevance (1-10), risks, recommendation</label>
-        <label class="checklist-item"><input type="checkbox"> Mock-анализ при отсутствии API ключа</label>
-        <label class="checklist-item"><input type="checkbox"> Повторный запрос не перезаписывает анализ</label>
-        <label class="checklist-item"><input type="checkbox"> Ошибка AI не ломает ответ (грациозный fallback)</label>
+      <div class="qa-env-card">
+        <h3>👤 Тестовые аккаунты</h3>
+        <div class="qa-env-grid">
+          <div class="qa-env-item">
+            <div class="qa-env-label">Free-пользователь (основной)</div>
+            <div class="qa-env-value">v2@inbox.ru / Qwerty01</div>
+            <div class="qa-env-label">Free · 10 тендеров/мес · 1 подписка</div>
+          </div>
+          <div class="qa-env-item">
+            <div class="qa-env-label">Можно создать своего</div>
+            <div class="qa-env-value">email: qa+&lt;имя&gt;@test.ru<br>pass: Test1234!</div>
+            <div class="qa-env-label">Используй уникальный email чтобы не словить 409</div>
+          </div>
+          <div class="qa-env-item">
+            <div class="qa-env-label">API запрос из терминала</div>
+            <div class="qa-env-value">
+              <code style="font-size:0.75rem">curl -X POST /api/auth/login -H "Content-Type: application/json" -d '{"email":"...","password":"..."}'</code>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- Dashboard -->
-      <div class="tester-section">
-        <h4>📊 Дашборд</h4>
-        <label class="checklist-item"><input type="checkbox"> /dashboard — статы (тендеры, подписки, совпадения)</label>
-        <label class="checklist-item"><input type="checkbox"> Редирект на /login без токена</label>
-        <label class="checklist-item"><input type="checkbox"> /dashboard/subscriptions — список подписок</label>
-        <label class="checklist-item"><input type="checkbox"> /dashboard/tenders — таблица тендеров</label>
-        <label class="checklist-item"><input type="checkbox"> /dashboard/tender-detail — карточка + AI</label>
-        <label class="checklist-item"><input type="checkbox"> /dashboard/profile — профиль пользователя</label>
-        <label class="checklist-item"><input type="checkbox"> /dashboard/plan — тарифы и биллинг</label>
+      <div class="qa-env-card">
+        <h3>📦 Эталонные данные для проверки</h3>
+        <div class="qa-env-grid">
+          <div class="qa-env-item">
+            <div class="qa-env-label">Документы на сервере</div>
+            <div class="qa-env-value">
+              <code style="font-size:0.75rem">/opt/h025-tender-search/</code><br>
+              <code style="font-size:0.75rem">/home/openclaw/.openclaw/workspace/projects/h025-tender-search/</code>
+            </div>
+          </div>
+          <div class="qa-env-item">
+            <div class="qa-env-label">Полезные ID тендеров</div>
+            <div class="qa-env-value">
+              Сделай поиск:<br>
+              <code style="font-size:0.75rem">curl -H "Authorization: Bearer $TOKEN" /api/tenders?page_size=3</code>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── 2. ПРОЦЕСС ТЕСТИРОВАНИЯ ──────────────── -->
+    <section class="qa-section" id="process">
+      <h2>2. Процесс тестирования (делай по шагам)</h2>
+      <p class="text-muted" style="margin-bottom:16px">
+        Рекомендуемый порядок прохождения. Каждый шаг — отдельный этап с фиксацией результата.
+      </p>
+
+      <div class="qa-process-step">
+        <div class="qa-process-num">1</div>
+        <div class="qa-process-content">
+          <div class="qa-process-title">Подготовка</div>
+          <div class="qa-process-desc">
+            Открой DevTools браузера (F12) → вкладка Console. Включи «Preserve log».
+            Открой в отдельной вкладке эту страницу. Закрой другие вкладки с проектом, чтобы не путать логи.
+            Заведи отдельный текстовый файл <code>qa-report-&lt;твоё-имя&gt;-YYYY-MM-DD.md</code> для заметок в свободной форме.
+          </div>
+        </div>
       </div>
 
-      <!-- Security -->
-      <div class="tester-section">
-        <h4>🔒 Безопасность</h4>
-        <label class="checklist-item"><input type="checkbox"> Все эндпоинты (кроме /api/auth/*) требуют токен</label>
-        <label class="checklist-item"><input type="checkbox"> CORS настроен (проверить заголовки)</label>
-        <label class="checklist-item"><input type="checkbox"> SQL-инъекции: экранирование через параметризацию</label>
-        <label class="checklist-item"><input type="checkbox"> XSS: HTML-сущности экранируются</label>
-        <label class="checklist-item"><input type="checkbox"> Rate limiting (опционально)</label>
-        <label class="checklist-item"><input type="checkbox"> Хеширование паролей (bcrypt)</label>
-        <label class="checklist-item"><input type="checkbox"> Admin эндпоинты только для admin-роли</label>
+      <div class="qa-process-step">
+        <div class="qa-process-num">2</div>
+        <div class="qa-process-content">
+          <div class="qa-process-title">Smoke-тест (10 мин)</div>
+          <div class="qa-process-desc">
+            Пройди чек-лист «Smoke» ниже — это критический путь пользователя. Если что-то из smoke падает — блокирующий дефект, остальное можно не тестировать пока не починим.
+          </div>
+        </div>
       </div>
 
-      <!-- UI/UX -->
-      <div class="tester-section">
-        <h4>🎨 UI/UX</h4>
-        <label class="checklist-item"><input type="checkbox"> Тёмная тема на всех страницах</label>
-        <label class="checklist-item"><input type="checkbox"> Мобильная адаптивность (≤768px)</label>
-        <label class="checklist-item"><input type="checkbox"> Состояния загрузки (spinner)</label>
-        <label class="checklist-item"><input type="checkbox"> Пустые состояния (empty state)</label>
-        <label class="checklist-item"><input type="checkbox"> Ошибки отображаются пользователю</label>
-        <label class="checklist-item"><input type="checkbox"> Toast-уведомления</label>
-        <label class="checklist-item"><input type="checkbox"> Кнопки disabled во время запроса</label>
-        <label class="checklist-item"><input type="checkbox"> Навигация работает (хлебные крошки, назад)</label>
+      <div class="qa-process-step">
+        <div class="qa-process-num">3</div>
+        <div class="qa-process-content">
+          <div class="qa-process-title">Полный обход по модулям</div>
+          <div class="qa-process-desc">
+            Пройди вкладки <strong>Auth → Tenders → Subscriptions → Dashboard → API → UI/UX → Security → Performance</strong>.
+            На каждый тест-кейс кликай одну из кнопок: ✅ Pass / ❌ Fail / ⏭ Skip / 🚫 Block.
+            Прогресс сохраняется в localStorage браузера — можно прерваться и продолжить завтра.
+          </div>
+        </div>
       </div>
 
-      <!-- Performance -->
-      <div class="tester-section">
-        <h4>⚡ Производительность</h4>
-        <label class="checklist-item"><input type="checkbox"> Время ответа API < 500ms (p95)</label>
-        <label class="checklist-item"><input type="checkbox"> Пагинация ограничивает размер ответа</label>
-        <label class="checklist-item"><input type="checkbox"> Параллельный AI-анализ не блокирует API</label>
-        <label class="checklist-item"><input type="checkbox"> Пулы соединений PostgreSQL</label>
-        <label class="checklist-item"><input type="checkbox"> Nginx кэширует статику</label>
+      <div class="qa-process-step">
+        <div class="qa-process-num">4</div>
+        <div class="qa-process-content">
+          <div class="qa-process-title">Сбор дефектов</div>
+          <div class="qa-process-desc">
+            Все упавшие кейсы → форма «Отчёт о дефекте» внизу страницы. Заполни по одному отчёту на каждый баг.
+            Когда закончишь — нажми <strong>«📥 Скачать отчёт JSON»</strong>, файл сохранится к тебе на диск.
+          </div>
+        </div>
       </div>
-    </div>
 
-    <!-- Bug Report Template -->
-    <div class="bug-report mt-3">
-      <h3>🐛 Шаблон баг-репорта</h3>
-      <div class="form-group">
-        <label>Заголовок</label>
-        <input class="form-input" placeholder="Краткое описание бага">
+      <div class="qa-process-step">
+        <div class="qa-process-num">5</div>
+        <div class="qa-process-content">
+          <div class="qa-process-title">Отправка результатов</div>
+          <div class="qa-process-desc">
+            Отправь JSON-отчёт + свой свободный md-файл Сергею в Telegram (<a href="tg://resolve?domain=Pakshin">@Pakshin</a>) с пометкой «QA TenderSearch YYYY-MM-DD».
+            Если нашёл блокирующий баг (P0) — сообщи сразу в чат, не дожидаясь конца прогона.
+          </div>
+        </div>
       </div>
-      <div class="form-group">
-        <label>Шаги воспроизведения</label>
-        <textarea class="form-input" placeholder="1. Перейти на...&#10;2. Нажать...&#10;3. Увидеть..."></textarea>
-      </div>
-      <div class="form-group">
-        <label>Ожидаемый результат</label>
-        <textarea class="form-input" placeholder="Что должно произойти"></textarea>
-      </div>
-      <div class="form-group">
-        <label>Фактический результат</label>
-        <textarea class="form-input" placeholder="Что происходит на самом деле"></textarea>
-      </div>
-      <div class="form-group">
-        <label>Окружение</label>
-        <input class="form-input" placeholder="Браузер, ОС, версия">
-      </div>
-      <button class="btn btn-primary" onclick="alert('Баг-репорт скопирован в буфер (заглушка)')">📋 Копировать отчёт</button>
-    </div>
+    </section>
 
-    <!-- Quick Links -->
-    <div class="mt-3">
-      <h3>🔗 Быстрые ссылки</h3>
+    <!-- ─── 3. PROGRESS ──────────────── -->
+    <section class="qa-section" id="progress-summary">
+      <h2>3. Прогресс тестирования</h2>
+      <div class="qa-summary">
+        <div class="card"><div class="stat-num stat-total" id="stat-total">0</div><div class="stat-label">Всего тестов</div></div>
+        <div class="card"><div class="stat-num stat-pass" id="stat-passed">0</div><div class="stat-label">✅ Пройдено</div></div>
+        <div class="card"><div class="stat-num stat-fail" id="stat-failed">0</div><div class="stat-label">❌ Упало</div></div>
+        <div class="card"><div class="stat-num stat-skip" id="stat-skipped">0</div><div class="stat-label">⏭ Пропущено</div></div>
+        <div class="card"><div class="stat-num stat-skip" id="stat-blocked">0</div><div class="stat-label">🚫 Заблокировано</div></div>
+        <div class="card"><div class="stat-num stat-total" id="stat-remaining">0</div><div class="stat-label">⏳ Осталось</div></div>
+      </div>
+      <div class="qa-progress">
+        <div class="qa-progress-bar" id="progress-bar" style="width:0%"></div>
+      </div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="resetAll()">🔄 Сбросить прогресс</button>
+        <button class="btn btn-secondary" onclick="exportReport()">📥 Скачать отчёт JSON</button>
+        <button class="btn btn-secondary" onclick="copyReportToClipboard()">📋 Скопировать в буфер</button>
+      </div>
+    </section>
+
+    <!-- ─── 4. TABS / TEST CASES ──────────────── -->
+    <section class="qa-section" id="testcases">
+      <h2>4. Тест-кейсы</h2>
+      <p class="text-muted" style="margin-bottom:16px">
+        Проходи по вкладкам. Кликай <strong>Pass/Fail/Skip/Block</strong> на каждом кейсе.
+        Результаты сохраняются автоматически в localStorage браузера.
+      </p>
+
+      <div class="qa-filter">
+        <label class="text-muted">Фильтр:</label>
+        <select id="filter-section" onchange="filterTestcases()">
+          <option value="all">Все секции</option>
+          <option value="smoke">🔥 Smoke (критический путь)</option>
+          <option value="auth">🔐 Auth</option>
+          <option value="tenders">📋 Поиск тендеров</option>
+          <option value="subscriptions">📬 Подписки</option>
+          <option value="ai">🤖 AI-анализ</option>
+          <option value="dashboard">📊 Дашборд</option>
+          <option value="api">⚙️ API (ручной curl)</option>
+          <option value="ui">🎨 UI/UX</option>
+          <option value="security">🔒 Безопасность</option>
+          <option value="perf">⚡ Производительность</option>
+        </select>
+        <select id="filter-status" onchange="filterTestcases()">
+          <option value="all">Все статусы</option>
+          <option value="untested">Не пройденные</option>
+          <option value="passed">✅ Passed</option>
+          <option value="failed">❌ Failed</option>
+          <option value="skipped">⏭ Skipped</option>
+          <option value="blocked">🚫 Blocked</option>
+        </select>
+        <input id="filter-search" type="text" placeholder="🔍 Поиск по тексту..." oninput="filterTestcases()">
+      </div>
+
+      <div class="qa-tabs" id="qa-tabs"></div>
+      <div id="qa-tabs-content"></div>
+    </section>
+
+    <!-- ─── 5. BUG REPORT FORM ──────────────── -->
+    <section class="qa-section" id="bugs">
+      <h2>5. Отчёт о дефекте</h2>
+      <p class="text-muted" style="margin-bottom:16px">
+        Заполняй по одному отчёту на каждый баг. Серьёзность (Severity):
+        <strong>P0 Blocker</strong> — приложение не работает / ломает авторизацию;
+        <strong>P1 Critical</strong> — основной сценарий сломан;
+        <strong>P2 Major</strong> — серьёзная проблема, есть workaround;
+        <strong>P3 Minor</strong> — косметика / UX.
+      </p>
+
+      <div class="bug-report" id="bug-list-container">
+        <h3>📋 Список найденных дефектов (<span id="bugs-count">0</span>)</h3>
+        <div id="bugs-list"></div>
+        <button class="btn btn-secondary mt-2" onclick="exportBugsOnly()">📥 Скачать только баги</button>
+      </div>
+
+      <div class="bug-report mt-2">
+        <h3>➕ Добавить новый дефект</h3>
+        <div class="form-group">
+          <label>Заголовок (коротко, ≤80 символов) *</label>
+          <input class="form-input" id="bug-title" placeholder="Например: 500 на POST /api/auth/register при email > 64 символов">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="form-group">
+            <label>Severity *</label>
+            <select class="form-input" id="bug-severity">
+              <option value="P0">P0 — Blocker</option>
+              <option value="P1" selected>P1 — Critical</option>
+              <option value="P2">P2 — Major</option>
+              <option value="P3">P3 — Minor</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Модуль</label>
+            <select class="form-input" id="bug-module">
+              <option value="auth">Auth</option>
+              <option value="tenders">Tenders</option>
+              <option value="subscriptions">Subscriptions</option>
+              <option value="ai">AI</option>
+              <option value="dashboard">Dashboard</option>
+              <option value="api">API</option>
+              <option value="ui">UI/UX</option>
+              <option value="security">Security</option>
+              <option value="perf">Performance</option>
+              <option value="other">Другое</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="form-group">
+            <label>Браузер</label>
+            <input class="form-input" id="bug-browser" placeholder="Chrome 124 / Firefox 126 / Safari 17.4">
+          </div>
+          <div class="form-group">
+            <label>ОС</label>
+            <input class="form-input" id="bug-os" placeholder="macOS 14.5 / Windows 11 / Ubuntu 24.04">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Шаги воспроизведения *</label>
+          <textarea class="form-input" id="bug-steps" rows="4" placeholder="1. Перейти на https://tenders.ivoryhome.ru/register&#10;2. Заполнить email: test@test.ru, password: 123&#10;3. Нажать «Зарегистрироваться»&#10;4. Увидеть ошибку"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Ожидаемый результат *</label>
+          <textarea class="form-input" id="bug-expected" rows="2" placeholder="Что должно произойти"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Фактический результат *</label>
+          <textarea class="form-input" id="bug-actual" rows="3" placeholder="Что происходит на самом деле (включая текст ошибки, скриншоты если есть)"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Логи из Console (если есть)</label>
+          <textarea class="form-input" id="bug-logs" rows="3" placeholder="Вставь текст ошибки из DevTools → Console"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Скриншот / видео (опционально)</label>
+          <input class="form-input" id="bug-screenshot" type="file" accept="image/*,video/*">
+        </div>
+        <div style="display:flex;gap:12px">
+          <button class="btn btn-primary" onclick="addBug()">➕ Добавить дефект</button>
+          <button class="btn btn-secondary" onclick="clearBugForm()">Очистить форму</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── 6. QUICK LINKS ──────────────── -->
+    <section class="qa-section" id="links">
+      <h2>6. Быстрые ссылки</h2>
+      <p class="text-muted" style="margin-bottom:16px">Публичные страницы и API для ручной проверки.</p>
       <div class="quick-links">
         <a href="/" class="quick-link">🏠 Лендинг</a>
         <a href="/login" class="quick-link">🔑 Вход</a>
@@ -166,15 +332,23 @@
         <a href="/dashboard" class="quick-link">📊 Дашборд</a>
         <a href="/dashboard/subscriptions" class="quick-link">📬 Подписки</a>
         <a href="/dashboard/tenders" class="quick-link">📋 Тендеры</a>
+        <a href="/dashboard/tender-detail" class="quick-link">📄 Карточка тендера</a>
         <a href="/dashboard/profile" class="quick-link">👤 Профиль</a>
-        <a href="/dashboard/plan" class="quick-link">💳 Тариф</a>
+        <a href="/dashboard/plan" class="quick-link">💳 Тариф/Биллинг</a>
         <a href="/marketing" class="quick-link">📈 Маркетинг</a>
-        <a href="/api/health" class="quick-link" target="_blank">❤️ Health API</a>
-        <a href="/api/tariffs" class="quick-link" target="_blank">📊 Tariffs API</a>
+        <a href="/api/health" class="quick-link" target="_blank">❤️ /api/health</a>
+        <a href="/api/tariffs" class="quick-link" target="_blank">📊 /api/tariffs</a>
+        <a href="/api/docs" class="quick-link" target="_blank">📚 /api/docs (Swagger)</a>
+        <a href="https://github.com/ShinPak2/ferso-tender-search" class="quick-link" target="_blank">💻 GitHub</a>
       </div>
-    </div>
+    </section>
+
+    <!-- Toast -->
+    <div class="qa-toast" id="qa-toast"></div>
+
   </div>
 </main>
 
+<script src="js/qa-tester.js"></script>
 </body>
 </html>
