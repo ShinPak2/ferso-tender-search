@@ -75,9 +75,6 @@ const Dashboard = (() => {
     if (!requireAuth()) return;
     const user = API.getUser();
 
-    if (!requireAuth()) return;
-    const user = API.getUser();
-
     const userNameEl = document.getElementById('user-name');
     if (userNameEl) userNameEl.textContent = user?.name || user?.email || 'Пользователь';
 
@@ -683,14 +680,25 @@ const Dashboard = (() => {
       loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const btn = loginForm.querySelector('button[type="submit"]');
+        if (!btn) return;
+        const emailEl = document.getElementById('email');
+        const passEl = document.getElementById('password');
+        if (!emailEl || !passEl) {
+          document.getElementById('login-error').textContent = 'Поля не найдены';
+          document.getElementById('login-error').style.display = 'block';
+          return;
+        }
         btn.disabled = true;
         btn.textContent = 'Входим...';
         try {
-          await API.login(loginForm.email.value, loginForm.password.value);
+          await API.login(emailEl.value, passEl.value);
           window.location.href = '/dashboard';
         } catch (err) {
-          document.getElementById('login-error').textContent = err.message;
-          document.getElementById('login-error').style.display = 'block';
+          const errEl = document.getElementById('login-error');
+          if (errEl) {
+            errEl.textContent = err.message || 'Ошибка входа';
+            errEl.style.display = 'block';
+          }
         } finally {
           btn.disabled = false;
           btn.textContent = 'Войти';
@@ -777,4 +785,8 @@ const Dashboard = (() => {
   };
 })();
 
-document.addEventListener('DOMContentLoaded', () => Dashboard.init());
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => Dashboard.init());
+} else {
+  Dashboard.init();
+}
