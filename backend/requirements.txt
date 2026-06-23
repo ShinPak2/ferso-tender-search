@@ -11,3 +11,26 @@ apscheduler>=3.10.0
 python-dateutil>=2.9.0
 pydantic[email]>=2.0
 python-multipart>=0.0.9
+
+# ── h025ai-7: document parser ────────────────────────────────────
+python-docx>=1.1.0           # .docx
+openpyxl>=3.1.0              # .xlsx
+xlrd==2.0.1                  # .xls (legacy; 2.0.1 is last version with no licensing issues)
+pdfplumber>=0.11.0           # .pdf
+pikepdf>=8.0.0               # .pdf fallback for broken files
+rarfile>=4.1                 # .rar (requires unrar CLI on host)
+
+# ── h025ai-8: tender parser ──────────────────────────────────────
+tenacity>=8.2.0              # retry + exponential backoff
+selectolax>=0.3.21           # fast HTML parser (C-based, 5-10x faster than bs4)
+
+# ── h025ai-11: dedup ─────────────────────────────────────────────
+sentence-transformers>=2.7.0 # multilingual embeddings (~470MB, lazy-loaded)
+numpy>=1.26.0                # for cosine similarity
+
+# ── h025ai-15: DaMIA client ─────────────────────────────────────
+# DaMIA uses plain httpx (already listed) + simple JSON. No extra deps.
+
+# ── dev / test ───────────────────────────────────────────────────
+pytest>=8.0.0
+pytest-asyncio>=0.23.0

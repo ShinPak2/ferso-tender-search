@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .database import init_db
-from .routers import admin, auth, billing, subscriptions, suggestions, tenders
+from .routers import admin, auth, billing, profile, subscriptions, suggestions, tenders
 from .services.scheduler import ensure_admin_user, start_scheduler, stop_scheduler
 
 
@@ -44,6 +44,7 @@ app.include_router(tenders.router, prefix="/api/tenders", tags=["Tenders"])
 app.include_router(subscriptions.router, prefix="/api/subscriptions", tags=["Subscriptions"])
 app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
 app.include_router(billing.router, prefix="/api", tags=["Billing"])
+app.include_router(profile.router, prefix="/api/profile", tags=["Profile"])
 app.include_router(suggestions.router, tags=["Suggestions"])
 
 
