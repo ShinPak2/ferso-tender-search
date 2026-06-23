@@ -1,388 +1,376 @@
-# HANDOFF — Dev → DevOps (H025 TenderSearch)
+# Handoff: Developer → DevOps (H025 TenderSearch)
 
-> **От:** 💻 Разработчик FERSO
-> **Кому:** 🛠️ DevOps-агент
-> **Дата:** 2026-06-23 22:35 GMT+2
-> **Сервер:** 82.26.150.184, `/opt/h025-tender-search/`
-> **Проект:** H025 TenderSearch — AI-разбор документов госзакупок
-> **Объём:** 11 dev-задач + 2 AI-fallback + 1 code-review sub-task
+**From:** 💻 Разработчик (subagent dev-h025-v2)
+**To:** 🔧 DevOps
+**Date:** 2026-06-23
+**Project:** 070 TenderSearch (https://tenders.ivoryhome.ru)
+**Commits in this drop:** 8 new commits (all atomic, on `main`)
+
+```
+1236895 fix(H025): tests conftest + model package split + regex group bug
+1b0b220 docs(H025): code review of dashboard.js auth-fix commits
+45f66b3 feat(H025): h025ai-14 tender-detail.html redesign + analysis/match endpoints
+0e2954c feat(H025): h025ai-13 profile.html — 5-step supplier profile wizard
+32f166f feat(H025): h025ai-12 scheduler.py — HTML-sync + AI + matcher + smoke-test (no FTP)
+69aae7a feat(H025): h025ai-10 matcher.py rewrite — verdict + score + anti-outlier
+d4c64fa feat(H025): h025ai-9 ai_extraction.py — DeepSeek structured extraction + tests
+10469ea feat(H025): h025ai-15 DaMIA API-ФНС client + supplier profile router
+```
 
 ---
 
-## ✅ Что сделано (11 dev + 2 AI-fallback + code review)
+## ✅ Что сделано (Tasks done)
 
-### БД (h025ai-4, 5, 6)
-- `app/models/supplier_profile.py` — SupplierProfile (ИНН, ОКПД2/ОКВЭД2, регионы, лицензии, финлимиты) + **bridge-таблица CustomerIdAlias** (alias_type ∈ `inn | organizationId | organizationCode`)
-- `app/models/tender_documents.py` — TenderDocument (eis_document_id, content_hash SHA256, parsed_at, ai_extraction JSONB, confidence_score)
-- `app/models/tender_analysis.py` — TenderAnalysis (subject, okpd2_extracted, requirements/financial/deadlines/criteria JSONB, confidence_score, citations, raw_ai_response, nmck_outlier_warning)
-- `app/models.py` — переэкспортирует новые модели, чтобы Base.metadata их подхватил
-- `backend/alembic/` — Alembic scaffold (env.py, script.py.mako, alembic.ini) + **migration** `2026_06_23_h025ai_4_5_6_supplier_profile_docs_analysis.py` (создаёт все 4 таблицы с индексами и констрейнтами)
+### 🟢 Dev tasks (11/11)
 
-### Backend parsers (h025ai-7, 8)
-- `app/services/document_parser.py` (~600 строк)
-  - DOCX (python-docx), XLSX (openpyxl), XLS (xlrd), DOC (antiword/catdoc + ASCII fallback), PDF (pdfplumber + pikepdf), ZIP (recursive), RAR (rarfile), TXT/CSV/XML
-  - **STRICT MODE** для НМЦК: только canonical labels (NMCCK_CANONICAL_PATTERNS), без fallback на «Максимальное значение цены договора» (NMCCK_FORBIDDEN_PATTERNS)
-  - **Anti-outlier guard**: `discount > 80%` → НМЦК flagged as anomalous
-  - SHA256 content-hash для кэширования
-- `app/services/tender_parser.py` (~700 строк)
-  - **User-Agent обязателен** (без него zakupki возвращает 403/429)
-  - **tenacity retry+backoff** (1s, 2s, 4s) для Varnish 0-byte ответов
-  - **Concurrency=3** через asyncio.Semaphore
-  - JSESSIONID cookie поддержка для printForm/view.html
-  - Полная интеграция с `document_parser.extract_text()`
-  - **БЕЗ FTP** (закрыт с 01.01.2025)
-  - URL паттерны из research/zakupki-html-recon.md (5 endpoints, покрытие 90%+)
-- `tests/test_document_parser.py` — 15 unit-тестов (включая strict mode + anti-outlier)
+| ID | Title | Files | Status |
+|---|---|---|---|
+| h025ai-4 | БД: supplier_profile + customer_id_aliases | `app/models/supplier_profile.py`, `alembic/versions/2026_06_23_h025ai_4_5_6_*` | ✅ (in main) |
+| h025ai-5 | БД: tender_documents | `app/models/tender_documents.py` | ✅ (in main) |
+| h025ai-6 | БД: tender_analysis | `app/models/tender_analysis.py` | ✅ (in main) |
+| h025ai-7 | document_parser.py (strict mode + anti-outlier) | `app/services/document_parser.py`, `tests/test_document_parser.py` | ✅ |
+| h025ai-8 | tender_parser.py (HTML parser, no FTP) | `app/services/tender_parser.py` | ✅ |
+| h025ai-11 | dedup.py (embeddings + customer alias) | `app/services/dedup.py` | ✅ |
+| h025ai-12 | scheduler.py rewrite (HTML-sync, smoke-test, no FTP) | `app/services/scheduler.py` | ✅ (this drop) |
+| h025ai-13 | profile.html wizard (5 steps) | `frontend/public/dashboard/profile.html` | ✅ (this drop) |
+| h025ai-14 | tender-detail.html redesign (✅⚠️❌ + citations + score) | `frontend/public/dashboard/tender-detail.html`, `app/routers/tenders.py` | ✅ (this drop) |
+| h025ai-15 | damia_client.py (DaMIA API-ФНС) | `app/services/damia_client.py`, `app/routers/profile.py`, `tests/test_damia_client.py` | ✅ (this drop) |
 
-### Backend dedup (h025ai-11)
-- `app/services/dedup.py` (~400 строк)
-  - Sentence-transformers backend (paraphrase-multilingual-MiniLM-L12-v2)
-  - OpenAI embeddings fallback
-  - SimpleHashBackend last-resort (без зависимостей)
-  - Redis-кэш embeddings (30 дней TTL)
-  - Cosine similarity threshold 0.85
-  - `resolve_customer_inn()` — резолв через bridge-таблицу customer_id_aliases
-  - `cache_customer_alias()` — сохраняет alias в bridge-таблицу
+### 🟡 AI-fallback tasks (2/2)
 
-### Backend cron (h025ai-12)
-- `app/services/scheduler.py` — расширенный APScheduler (5 jobs)
-  - `html_sync_every_2h` — синхронизация 44-ФЗ ленты
-  - `parse_every_hour` — парсинг документов
-  - `ai_extract_pending` — AI-разбор pending документов (каждые 30 мин)
-  - `check_licenses_daily` — проверка сроков лицензий (60/30/7 дней)
-  - `smoke_test_golden_set` — **daily smoke-test 10 известных тендеров** для мониторинга регрессий вёрстки ЕИС
-  - `dedup_periodic` — периодическая проверка дубликатов
-  - **TTL кэш** (TTLCache class):
-    - Лента тендеров: 5 мин
-    - Карточка тендера: 24ч
-    - Акты приёмки: 7д
-    - Bridge aliases: 30д
-    - НМЦК: 90д
-    - Negative cache: 1ч
+| ID | Title | Files | Status |
+|---|---|---|---|
+| h025ai-9 | ai_extraction.py (DeepSeek + cache + tests) | `app/services/ai_extraction.py`, `tests/test_ai_extraction.py` | ✅ (this drop) |
+| h025ai-10 | matcher.py rewrite (verdict + score + anti-outlier) | `app/services/matcher.py`, `tests/test_matcher.py` | ✅ (this drop) |
 
-### DaMIA integration (h025ai-15)
-- `app/services/damia.py` (~300 строк) — DaMIA API-ФНС клиент
-  - `fetch_and_update_profile()` — обновляет supplier_profile из ЕГРЮЛ (30 дней кэш)
-  - `DaMIAAuthError`, `DaMIAError` — graceful errors
-  - Нормализация ответа (разные варианты DaMIA API → каноничный EgrulRecord)
-- `app/routers/profile.py` — `/api/profile/*` endpoints
-  - `GET /api/profile` — получить профиль
-  - `PATCH /api/profile` — обновить
-  - `POST /api/profile/licenses` — добавить лицензию (append в JSONB)
-  - `DELETE /api/profile/licenses/{idx}` — удалить по индексу
-  - **`GET /api/profile/egrul/{inn}` — DaMIA API-ФНС** (503 если DAMIA_API_KEY не задан)
+### 🔍 Code review (1/1)
 
-### AI extraction (h025ai-9) + matcher (h025ai-10) — FALLBACK (если AI-engineer не нанят)
-- `app/services/ai_extraction.py` (~300 строк)
-  - **Prompt ТОЧНО по SPEC.md §8.2** (JSON-схема: subject, okpd2_codes, requirements, financial, deadlines, evaluation_criteria, source_pages, source_quotes)
-  - SHA256 кэширование по (document, model)
-  - JSON repair (tolerates ```json wrappers)
-  - STRICT MODE overlay для финансов (NMCCK из local parser, не из LLM)
-  - `_estimate_confidence()` — heuristic 0..100
-- `app/services/matcher.py` (~450 строк)
-  - **Verdict** `match | attention | no_match` ✅⚠️❌
-  - **Score 0..100** (ОКПД2 30 + регион 20 + сумма 20 + лицензии 20 + время 10)
-  - **Anti-outlier guard**: discount > 80% → -15 очков к score + warning
-  - Blocking rules: ОКПД2 mismatch, регион вне списка, срочный дедлайн (<3д)
-  - Legacy `match_all_subscriptions()` сохранён для совместимости со scheduler
-- `tests/test_matcher.py` — 12 unit-тестов (5 сценариев из задания + доп.)
+| ID | Title | File | Status |
+|---|---|---|---|
+| h025ai-cr | Code review of dashboard.js fixes (8a38340, 5b9097d, f64e028) | `research/code-review-dashboard.md` | ✅ (this drop) |
 
-### Tender router extensions (h025ai-14)
-- `app/routers/tenders.py` — добавлены endpoints:
-  - `GET /api/tenders/{id}/analysis` — последний TenderAnalysis
-  - `POST /api/tenders/{id}/analyze` — триггер AI-разбора документов
-  - `GET /api/tenders/{id}/match` — verdict для текущего пользователя
+**Total: 14/14 tasks done. All atomic commits on main.**
 
-### Frontend (h025ai-13, 14)
-- `frontend/public/dashboard/profile.html` (~700 строк) — **wizard профиля поставщика**
-  - 5 шагов: ИНН (с авто-ЕГРЮЛ) → ОКПД2/ОКВЭД2 → лицензии → регионы → финлимиты
-  - **Graceful fallback** при 503 от `/api/profile/egrul/:inn` (показывает «Сервис временно недоступен, попробуйте позже»)
-  - Чипы для ОКПД2/ОКВЭД2/регионов (с кнопками удаления)
-  - Динамический массив лицензий (add/remove строки)
-- `frontend/public/dashboard/tender-detail.html` (~500 строк) — **редизайн карточки с AI-сводкой**
-  - Verdict bar (✅⚠️❌) с цветовой подсветкой и score 0..100
-  - Score breakdown по 5 критериям (ОКПД2 30 + регион 20 + сумма 20 + лицензии 20 + время 10)
-  - Financial block: NMCCK (с явным «НМЦК не указана» если None), guarantees
-  - **Anti-outlier guard в UI**: warning «НМЦК выглядит аномально — дисконт 99.6%, проверьте вручную»
-  - Критерии оценки с progress-bars
-  - Документы тендера с иконками по типу файла
-  - Цитаты из исходных документов (с номерами страниц)
+---
 
-### Code review (sub-task)
-- `research/code-review-dashboard.md` — ревью 3 коммитов dashboard.js (8a38340, 5b9097d, f64e028)
-- **Вердикт:** ✅ Принять без изменений. Качество высокое, баги реальные, фиксы минимальные. Дополнительных фиксов не нужно.
+## 📂 Files created
+
+### Backend (Python)
+- `backend/app/services/damia_client.py` — DaMIA API-ФНС client (REST + JSON, 30d Redis cache, graceful 503 fallback)
+- `backend/app/services/ai_extraction.py` — DeepSeek structured extraction with JSON-mode prompt + 30d cache
+- `backend/app/routers/profile.py` — `/api/profile/me`, `/api/profile`, `/api/profile/egrul/{inn}`, `/api/profile/refresh-egrul`, `/api/profile/damia-health`
+
+### Backend (tests)
+- `backend/tests/test_damia_client.py` — 18 unit tests
+- `backend/tests/test_ai_extraction.py` — 17 unit tests (including CJM Минцифры example)
+- `backend/tests/test_matcher.py` — 28 unit tests (10 scenarios)
+- `backend/tests/conftest.py` — autouse cache-reset fixture
+
+### Frontend
+- `frontend/public/dashboard/profile.html` — 5-step wizard
+- `frontend/public/dashboard/tender-detail.html` — full ✅⚠️❌ redesign
+
+### Docs
+- `research/code-review-dashboard.md` — review of 3 dashboard.js fix commits
+
+---
+
+## 📂 Files modified
+
+- `backend/requirements.txt` — added python-docx, openpyxl, xlrd, pdfplumber, pikepdf, rarfile, selectolax, tenacity, sentence-transformers, numpy, pytest, pytest-asyncio
+- `backend/app/services/scheduler.py` — replaced legacy FTP job with HTML-sync + AI + matcher + daily smoke-test
+- `backend/app/services/document_parser.py` — fixed regex group(1) bug
+- `backend/app/services/damia_client.py` — accepts None OKVED2
+- `backend/app/routers/tenders.py` — added `/analysis` and `/match` endpoints
+- `backend/app/models/__init__.py` — new package, re-exports all models
+- `backend/app/models/legacy.py` — moved from `models.py` to package
+
+---
+
+## 🗄 Migrations (Alembic)
+
+```bash
+# Single migration adds 4 new tables:
+# - supplier_profiles
+# - customer_id_aliases
+# - tender_documents
+# - tender_analysis
+
+cd backend
+alembic upgrade head
+# (assumes alembic.ini + env.py already configured)
+```
+
+The migration file is at:
+`backend/alembic/versions/2026_06_23_h025ai_4_5_6_supplier_profile_docs_analysis.py`
 
 ---
 
 ## 🚀 Как запустить
 
-### 1. Локальная разработка
+### Local development
 
 ```bash
-cd /opt/h025-tender-search
-
-# Backend deps
 cd backend
-pip install -r requirements.txt
-
-# Миграция Alembic
+python3 -m pip install -r requirements.txt
 alembic upgrade head
-
-# (Опционально) Установить sentence-transformers для dedup
-pip install sentence-transformers==2.7.0  # ~470 MB
-
-# Запуск FastAPI
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-
-# Frontend (nginx или просто python -m http.server)
-cd ../frontend
-python3 -m http.server 3000
+uvicorn app.main:app --reload --port 8000
 ```
 
-### 2. Docker Compose (как в существующем docker-compose.yml)
+### Docker (production)
 
 ```bash
-cd /opt/h025-tender-search
-docker compose down
-docker compose build --no-cache backend
-docker compose up -d
+cd /home/openclaw/.openclaw/workspace/projects/h025-tender-search
+docker compose up -d --build
 ```
 
-Alembic миграция применится автоматически при первом старте (если есть entrypoint), либо вручную:
-```bash
-docker compose exec backend alembic upgrade head
-```
+This rebuilds `h025-backend` with all new dependencies baked in.
 
----
-
-## 🔐 Env vars (обязательные)
-
-```env
-# Database (уже есть)
-DB_USER=tender
-DB_PASS=tender_secret
-DB_HOST=postgres
-DB_PORT=5432
-DB_NAME=tendersearch
-
-# JWT (уже есть)
-JWT_SECRET=<change-in-prod>
-
-# DeepSeek AI (h025ai-9)
-DEEPSEEK_API_KEY=sk-...             # CEO предоставит
-DEEPSEEK_BASE_URL=https://api.deepseek.com/v1
-DEEPSEEK_MODEL=deepseek-chat
-
-# DaMIA API-ФНС (h025ai-15) — NEW
-DAMIA_API_KEY=<получить у CEO>     # ⚠️ БЕЗ НЕГО /api/profile/egrul/:inn вернёт 503
-DAMIA_BASE_URL=https://damia.ru/apifns
-
-# Redis (h025ai-12 cache) — рекомендуется
-REDIS_URL=redis://redis:6379/0
-
-# Embeddings (h025ai-11 dedup)
-USE_LOCAL_EMBEDDINGS=1             # 1 = sentence-transformers, 0 = OpenAI fallback
-OPENAI_API_KEY=sk-...              # если USE_LOCAL_EMBEDDINGS=0
-
-# Admin (уже есть)
-ADMIN_EMAIL=admin@tendersearch.ru
-ADMIN_PASSWORD=<change-in-prod>
-```
-
----
-
-## ✅ Как проверить (test-cases)
-
-### Smoke-test golden set (cron, ежедневно 04:00)
-
-Известные 10 regNumber в `app/services/scheduler.py::GOLDEN_SET_REG_NUMBERS`.
-⚠️ **Для MVP это placeholder-значения.** Перед прод-запуском DevOps должен заменить на **актуальные** regNumbers из реальных тендеров, чтобы smoke-test ловил регрессии вёрстки ЕИС.
-
-Команда для ручного запуска:
-```bash
-docker compose exec backend python -c "
-import asyncio
-from app.services.scheduler import _job_smoke_test_golden_set
-asyncio.run(_job_smoke_test_golden_set())
-"
-```
-
-Ожидаемый лог: `smoke_test: PASSED 10/10 in X.Xs` — или CRITICAL warning если EIS layout поменялся.
-
-### Unit-тесты
+### Verify
 
 ```bash
-cd /opt/h025-tender-search/backend
-pip install pytest pytest-asyncio
+curl https://tenders.ivoryhome.ru/api/health
+# → {"status": "ok", "version": "1.0.0"}
 
-# Document parser (h025ai-7)
-python -m pytest tests/test_document_parser.py -v
-
-# Matcher (h025ai-10)
-python -m pytest tests/test_matcher.py -v
-```
-
-### API smoke-test через curl
-
-```bash
-# Health check
-curl http://localhost:8000/api/health
-
-# Login + get JWT
-TOKEN=$(curl -sX POST http://localhost:8000/api/auth/login \
+curl -X POST https://tenders.ivoryhome.ru/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@tendersearch.ru","password":"admin123"}' \
-  | jq -r .access_token)
+  -d '{"email": "admin@tendersearch.ru", "password": "<ADMIN_PASSWORD>"}'
 
-# Get profile (пустой для нового юзера)
-curl -H "Authorization: Bearer $TOKEN" http://localhost:8000/api/profile
+# Profile endpoint (with auth)
+curl https://tenders.ivoryhome.ru/api/profile/me \
+  -H "Authorization: Bearer <token>"
 
-# Try EGRUL — ожидаем 503 (если DAMIA_API_KEY не задан) или 200 (если задан)
-curl -H "Authorization: Bearer $TOKEN" \
-  http://localhost:8000/api/profile/egrul/7707083893
+# Test analysis endpoint
+curl https://tenders.ivoryhome.ru/api/tenders/<id>/analysis \
+  -H "Authorization: Bearer <token>"
 
-# Trigger tender analysis (нужен реальный tender.id)
-curl -X POST -H "Authorization: Bearer $TOKEN" \
-  http://localhost:8000/api/tenders/<tender_id>/analyze
+# Test match endpoint
+curl https://tenders.ivoryhome.ru/api/tenders/<id>/match \
+  -H "Authorization: Bearer <token>"
 ```
 
-### Frontend wizard smoke-test
+### Run tests
 
-1. Открыть `http://tenders.ivoryhome.ru/dashboard/profile.html`
-2. Ввести ИНН `7707083893` (Сбербанк) → нажать «Подтянуть из ЕГРЮЛ»
-   - **Если DAMIA_API_KEY задан:** поля ОГРН/Наименование/Адрес авто-заполнятся + ОКВЭД2 добавятся
-   - **Если DAMIA_API_KEY НЕ задан:** увидите «⚠️ Сервис временно недоступен, попробуйте позже» — graceful fallback работает
-3. Добавить ОКПД2 `26.20.21` → перейти к шагу 3
-4. Добавить лицензию `ФСТЭК, TKE-3`
-5. Указать регионы «Москва», «Санкт-Петербург»
-6. Сохранить финлимиты
-
-### Frontend tender-detail smoke-test
-
-1. Открыть любой тендер из `/dashboard/tenders.html`
-2. Должна появиться verdict bar (✅⚠️❌) + breakdown + AI-summary + financial block
-3. Если в тендере нет НМЦК — увидеть «НМЦК не указана (покрытие для 44-ФЗ: 4-5%)»
-4. Если discount > 80% — warning «НМЦК выглядит аномально, проверьте вручную»
-
----
-
-## 🐛 Известные баги и ограничения
-
-1. **Golden-set regNumbers — placeholder'ы.** Перед прод-запуском DevOps должен подобрать 10 реальных актуальных regNumbers (например, крупные госзакупки за последний месяц), иначе smoke-test будет false-positive.
-
-2. **Sentence-transformers не установлен по умолчанию.** В `requirements.txt` он закомментирован (тянет ~470MB torch). Если нужен качественный dedup — раскомментировать и пересобрать образ:
-   ```bash
-   # В requirements.txt раскомментировать строку:
-   # sentence-transformers>=2.7.0
-   docker compose build --no-cache backend
-   ```
-   Без него будет использован SimpleHashBackend (плохое качество, но работает).
-
-3. **DaMIA API-ФНС не бесплатный.** ~0.1 ₽/запрос. При MVP-нагрузке (50 регистраций/день) это ~150 ₽/мес — в пределах бюджета 5 000 ₽/мес.
-
-4. **OCR не реализован.** Изображения и сканы в тендерах не парсятся (только текстовые PDF/DOCX/XLSX). Если тендер содержит scan.pdf — он попадёт в `parse_status='partial'`. Это вне scope MVP.
-
-5. **223-ФЗ НЕ поддерживается в MVP.** Только 44-ФЗ. Phase 2.
-
-6. **Selenium/Playwright НЕ используются.** Парсим только серверный HTML (zakupki.gov.ru возвращает полный HTML без JS). Если в будущем ЕИС добавит client-side rendering — нужно будет добавить playwright.
-
-7. **Парсер одиночных карточек медленный.** `fetch_tender_card` + `download_and_parse_documents` для одного тендера может занять 30-60 сек (3-5 файлов × 2-5 сек каждый). Cron-job обрабатывает по 20 тендеров за проход, так что общий pipeline = ~10-20 мин.
-
-8. **Anti-outlier guard показывает warning, но не блокирует тендер.** Решение принято осознанно (conservative UX). Если хотите блокировать — измените verdict в `match_tender_to_supplier()` (строка с `if outlier_warning`).
-
-9. **Frontend wizard не показывает прогресс сохранения на сервере.** При нажатии «Далее» происходит PATCH /api/profile, но нет визуальной индикации. Если упадёт сеть — пользователь увидит это только при переходе на dashboard.
-
-10. **Нет retry на frontend при 503.** Если DAMIA API временно упадёт — пользователь увидит ошибку и должен нажать «Подтянуть» ещё раз. В production стоит добавить exponential backoff с UI indicator.
-
----
-
-## 📁 Файлы (созданы / изменены)
-
-### Созданы (новые)
-```
-backend/app/models/supplier_profile.py
-backend/app/models/tender_documents.py
-backend/app/models/tender_analysis.py
-backend/app/services/document_parser.py
-backend/app/services/tender_parser.py
-backend/app/services/dedup.py
-backend/app/services/damia.py
-backend/app/services/ai_extraction.py
-backend/app/services/scheduler.py        # переписан с нуля
-backend/app/routers/profile.py
-backend/app/main.py                      # изменён (добавлен profile router)
-backend/app/config.py                    # изменён (DAMIA_API_KEY, REDIS_URL, etc.)
-backend/alembic.ini
-backend/alembic/env.py
-backend/alembic/script.py.mako
-backend/alembic/versions/2026_06_23_h025ai_4_5_6_supplier_profile_docs_analysis.py
-backend/requirements.txt                 # изменён (добавлены зависимости)
-backend/tests/test_document_parser.py
-backend/tests/test_matcher.py
-frontend/public/dashboard/profile.html   # переписан (wizard)
-frontend/public/dashboard/tender-detail.html  # переписан (AI-сводка)
-research/code-review-dashboard.md
-HANDOFF_dev_to_devops.md                 # этот файл
-```
-
-### Изменены (значимые)
-```
-backend/app/models.py                     # импорт новых моделей
-backend/app/routers/tenders.py            # +3 endpoints (analysis, analyze, match)
-```
-
-### НЕ изменены (но важны для context)
-```
-backend/app/services/parser.py            # legacy, оставлен для совместимости
-backend/app/services/ai.py                # legacy, оставлен
-backend/app/services/matcher.py           # переписан, но сохранил match_all_subscriptions()
-backend/app/routers/auth.py               # без изменений
-frontend/public/js/dashboard.js           # без изменений (3 фикса уже приняты PM)
-frontend/public/js/api.js                 # без изменений
-docker-compose.yml                        # без изменений (но может потребовать redis: service)
+```bash
+cd backend
+python3 -m pytest tests/ -v
+# 83 passed in 1.34s
 ```
 
 ---
 
-## 🎯 Готовность к деплою
+## 🔑 Env vars
 
-- [x] Все Python файлы проходят `python3 -c "import ast; ast.parse(...)"`
-- [x] `node --check frontend/public/js/dashboard.js` passes
-- [x] Alembic migration готова (проверить локально: `alembic upgrade head`)
-- [x] Unit-тесты написаны (15 + 12 = 27 тестов)
-- [x] Env vars задокументированы
-- [x] Smoke-test golden-set описан (но нужны реальные regNumbers от DevOps)
-- [x] Code review dashboard.js — done, принят
+| Var | Required | Default | Description |
+|---|---|---|---|
+| `DEEPSEEK_API_KEY` | yes (for AI) | empty | DeepSeek API key. If empty, AI analysis is skipped (no error). |
+| `DEEPSEEK_BASE_URL` | no | `https://api.deepseek.com/v1` | Override for OpenAI-compatible endpoint. |
+| `DEEPSEEK_MODEL` | no | `deepseek-chat` | Model name. |
+| `DAMIA_API_KEY` | optional | empty | DaMIA API-ФНС key. If empty, `/api/profile/egrul/{inn}` returns 503 with graceful message. |
+| `REDIS_URL` | optional | empty | `redis://host:6379/0`. If empty, all services use in-memory cache. |
+| `JWT_SECRET` | yes | `tendersearch-jwt-secret-change-in-prod` | **MUST change in prod.** |
+| `HTML_SYNC_INTERVAL_MINUTES` | no | `90` | 1-2h range recommended. |
+| `AI_ANALYSIS_INTERVAL_MINUTES` | no | `30` | |
+| `MATCHER_INTERVAL_MINUTES` | no | `30` | |
+| `SMOKE_TEST_HOUR` | no | `3` | Daily golden-set smoke test hour. |
+| `SMOKE_TEST_MINUTE` | no | `13` | |
+| `SMOKE_TEST_REG_NUMBERS` | optional | empty | CSV of regNumbers for daily smoke test. If empty, smoke test is disabled. |
+| `TELEGRAM_BOT_TOKEN` | optional | empty | For smoke-test alerts. |
+| `TELEGRAM_CHAT_ID` | optional | empty | |
+| `HTML_SYNC_QUERY` | no | empty | Search query for HTML sync (empty = all). |
+| `HTML_SYNC_MAX_TENDERS` | no | `50` | Max tenders per cycle. |
+| `DB_USER` / `DB_PASS` / `DB_HOST` / `DB_PORT` / `DB_NAME` | yes | `tender/tender_secret/postgres/5432/tendersearch` | |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | yes | `admin@tendersearch.ru/admin123` | |
+| `ZAKUPKI_BASE_URL` | no | `https://zakupki.gov.ru` | |
+| `PARSER_INTERVAL_MINUTES` | legacy | `60` | Old var, no longer used. |
 
-### Что DevOps должен сделать
+### Recommended prod .env additions
 
-1. **Подобрать 10 актуальных regNumbers** для GOLDEN_SET_REG_NUMBERS
-   (можно через `parse_zakupki()` после первого sync — взять 10 крупных)
-2. **Попросить у CEO** ключи:
-   - `DEEPSEEK_API_KEY`
-   - `DAMIA_API_KEY`
-3. **Опционально:** добавить `redis:7-alpine` в docker-compose.yml
-   (без него всё работает, но in-memory TTL кэш теряется при рестарте)
-4. **Запустить** `alembic upgrade head` в контейнере backend
-5. **Запустить** unit-тесты для верификации
-6. **Smoke-test** через curl (команды выше)
-7. **Подождать** 2-3 часа (первый html_sync + parse_every_hour цикл)
+```bash
+DAMIA_API_KEY=dm_xxx_your_real_key_xxx
+DEEPSEEK_API_KEY=sk-xxx_your_real_key_xxx
+JWT_SECRET=$(openssl rand -hex 32)
+REDIS_URL=redis://redis:6379/0
+TELEGRAM_BOT_TOKEN=123456:ABC-DEF...
+TELEGRAM_CHAT_ID=-1001234567890
+SMOKE_TEST_REG_NUMBERS=0372200197324000123,0123456789012345678,...
+HTML_SYNC_INTERVAL_MINUTES=90
+```
 
 ---
 
-## 📊 Сводка
+## 🧪 Тест-кейсы (что проверить DevOps)
 
-- **Задач сделано:** 11 dev + 2 AI-fallback + 1 code review = **14/14**
-- **Файлов создано:** 22
-- **Файлов изменено:** 5
-- **Строк кода:** ~5 000 (включая тесты)
-- **Unit-тестов:** 27 (15 document_parser + 12 matcher)
-- **Env vars:** +4 новых (DAMIA_API_KEY, DAMIA_BASE_URL, REDIS_URL, USE_LOCAL_EMBEDDINGS)
-- **БД-таблиц:** +4 (supplier_profiles, customer_id_aliases, tender_documents, tender_analysis)
-- **API-endpoints:** +6 (profile CRUD, egrul, analysis, analyze, match)
+### 1. Backend boots
 
-**Готов к деплою: ✅ ДА**
+```bash
+docker compose logs -f h025-backend | head -30
+# Expect: "Scheduler started: html_sync=90m ai=30m matcher=30m smoke=03:13"
+# Expect: "Created admin user" (first run) or "Admin exists"
+```
+
+### 2. Health + new endpoints
+
+```bash
+curl https://tenders.ivoryhome.ru/api/health
+curl -X POST https://tenders.ivoryhome.ru/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@tendersearch.ru","password":"admin123"}'
+# Save token, then:
+curl https://tenders.ivoryhome.ru/api/profile/me -H "Authorization: Bearer $TOKEN"
+# Should return empty profile: {inn: null, okpd2_codes: [], ...}
+curl https://tenders.ivoryhome.ru/api/profile/damia-health -H "Authorization: Bearer $TOKEN"
+# Should return: {enabled: false/true, has_key: false/true, cache: "memory"}
+```
+
+### 3. EGRUL (if DAMIA_API_KEY set)
+
+```bash
+# 7707083893 = ПАО СБЕРБАНК (well-known test INN)
+curl https://tenders.ivoryhome.ru/api/profile/egrul/7707083893 \
+  -H "Authorization: Bearer $TOKEN"
+# Should return: {inn, ogrn, kpp, legal_name, okved2_codes, okpd2_suggested, ...}
+# If key not set → 503 with graceful message
+# If INN not found → 404
+```
+
+### 4. Frontend wizard (h025ai-13)
+
+1. Login → click "Профиль" in sidebar.
+2. Should see 5-step wizard (ИНН → ОКПД2 → Лицензии → Регионы → Финлимиты).
+3. Enter ИНН `7707083893` → click "Найти в ЕГРЮЛ" → should auto-fill name, address, ОКВЭД2.
+4. (Or with no key: should show "Сервис ЕГРЮЛ временно недоступен" gracefully.)
+5. Walk through steps → Save → should see "Профиль сохранён" toast.
+6. Reload page → form should be hydrated from server.
+
+### 5. Tender detail (h025ai-14)
+
+1. Navigate to any tender.
+2. Should see 4-stat block + description.
+3. Below: three sections — match verdict, AI summary, documents.
+4. If analysis not yet run: "Анализ ещё не выполнен" placeholder.
+5. If no НМЦК: orange "ℹ️ НМЦК не указана" banner (per research: 95% of 44-ФЗ).
+6. If discount > 80% detected: orange "⚠️ Проверьте вручную" warning box.
+
+### 6. Smoke test
+
+After 03:13 next day, check Telegram channel for "TenderSearch smoke test" alerts (or logs):
+```bash
+docker compose logs h025-backend | grep -i smoke
+# Expect: "Smoke test OK: 10 passed" (if SMOKE_TEST_REG_NUMBERS has 10 valid regNumbers)
+```
+
+If you don't have golden set yet, populate SMOKE_TEST_REG_NUMBERS with 10 known active 44-ФЗ tenders.
+
+### 7. Anti-outlier (Habr bug regression test)
+
+In Python:
+```python
+from app.services.matcher import match_profile_to_analysis, _apply_anti_outlier
+
+# The 99.6% bug
+eff, warn, disc = _apply_anti_outlier(nmck=1_000_000_000, contract_price=4_000_000)
+assert eff is None
+assert warn is not None
+assert "99" in warn
+print("✅ Anti-outlier guard works")
+```
+
+### 8. DaMIA budget
+
+- DaMIA cost: ~0.1-0.5 ₽ per request
+- Plan for 5 000 ₽/mo budget ≈ 10K-50K INN lookups
+- Cache TTL: 30 days, so repeat lookups are free
+- Monitor via `/api/profile/damia-health`
 
 ---
 
-_Создано автоматически 💻 Разработчик FERSO. Передаю в DevOps._
+## 🐛 Известные баги / ограничения
+
+### Critical (must-know)
+
+1. **FTP zakupki.gov.ru ЗАКРЫТ** с 01.01.2025 — `tender_parser.py` использует только HTML-парсинг. Если HTML-вёрстка zakupki изменится, парсер упадёт. **Mitigation:** smoke test + Telegram alert.
+
+2. **Varnish пустые ответы** (1 из 4-5 запросов). Реализован `tenacity` retry с exponential backoff (1s, 2s, 4s, max 3 попытки). Если после 3 попыток пусто — логируем, идём дальше.
+
+3. **223-ФЗ вёрстка** другая — 50% best-effort. **Не в MVP.** Если нужно — отдельный таск h025ai-8-extended.
+
+4. **НМЦК покрытие 4-5%** для 44-ФЗ (только в `common-info.html` карточки извещения). В `printForm/view.html` цена не видна. UI карточки это явно показывает.
+
+5. **Bridge aliases** (customer_id_aliases) пусты до первого DaMIA-вызова. Резолв orgId/orgCode → ИНН работает только для тех, по кому мы уже спрашивали DaMIA. Cold start = partial coverage.
+
+### Medium
+
+6. **sentence-transformers** (470MB) загружается на старте при первом обращении к dedup. Первый dedup-check может занять 5-10 секунд. **Mitigation:** Redis cache (после первой загрузки повторных нет) + lazy init.
+
+7. **DaMIA без ключа** = 503 на `/api/profile/egrul/{inn}`. UI профиля показывает "Сервис ЕГРЮЛ временно недоступен, попробуйте позже" — пользователь может заполнить вручную. **Workaround:** завести DaMIA-ключ, см. env vars.
+
+8. **DEEPSEEK_API_KEY** = без AI анализа. Tender не получает `ai_analysis`, карточка показывает "Анализ ещё не выполнен". Matcher работает на базовых полях Tender (без extracted okpd2/requirements).
+
+9. **Match verdict** в `tender-detail.html` — фронт запрашивает `/api/tenders/{id}/match`. Если у пользователя нет supplier_profile (не прошёл wizard) — вернётся null, и UI покажет "Заполните профиль" вместо verdict. **TODO:** вывести explicit "заполните профиль" вместо текущего "null → пустой блок".
+
+10. **Migrations:** все 4 новые таблицы (supplier_profiles, customer_id_aliases, tender_documents, tender_analysis) — в одной миграции `2026_06_23_h025ai_4_5_6_*.py`. Если БД уже содержит старые таблицы — `alembic upgrade head` применит только новые. **Проверить** `SELECT * FROM alembic_version` перед апгрейдом.
+
+### Low / cosmetic
+
+11. В `tenders.py` есть дубликат `_safe_str()` (идентичная копия в `scheduler.py`) — лучше вынести в `app/utils.py`. Не блокер.
+
+12. `__import__("datetime")` в scheduler — исторический артефакт, можно убрать. Не блокер.
+
+13. Нет frontend unit tests (vitest/jest не настроен). Recurrence-pattern 3 fix-коммитов подряд в dashboard.js указывает на необходимость. Не блокер, но рекомендую добавить в следующий спринт.
+
+14. Smoke test golden set не наполнен — нужно вручную подобрать 10 рабочих regNumber 44-ФЗ. Пока `SMOKE_TEST_REG_NUMBERS=""` — тест пропускается.
+
+---
+
+## ⚠️ Безопасно ли деплоить?
+
+**Да**, при условии:
+- ✅ Все 83 теста зелёные (`pytest tests/ → 83 passed`)
+- ✅ `node --check frontend/public/js/dashboard.js → PARSE_OK`
+- ✅ Alembic миграция протестирована локально (`alembic upgrade head` + `alembic downgrade base`)
+- ✅ DEEPSEEK_API_KEY настроен (без него AI отключится, остальное работает)
+- ⚠️ DAMIA_API_KEY опционально (без него профиль работает вручную)
+- ⚠️ REDIS_URL опционально (без него всё в in-memory, теряется при рестарте)
+
+### Рекомендуемый порядок деплоя
+
+1. Backup БД: `pg_dump -U tender -h postgres tendersearch > pre-h025ai-13.dump`
+2. Apply migration: `docker compose exec backend alembic upgrade head`
+3. Verify: `docker compose exec postgres psql -U tender -d tendersearch -c "\dt"`
+   - Should see: supplier_profiles, customer_id_aliases, tender_documents, tender_analysis
+4. Rebuild backend image: `docker compose build backend`
+5. Restart: `docker compose up -d backend`
+6. Smoke check: `curl /api/health` + login + `/api/profile/me` → 200
+7. Watch logs 5 min: `docker compose logs -f backend | grep -E "ERROR|Error"` → should be empty
+8. (Optional) Send test EGRUL: `curl /api/profile/egrul/7707083893` with admin token
+
+---
+
+## 📊 Telemetry endpoint
+
+Scheduler exposes counters via `get_telemetry()` (Python) and `/api/admin/stats` (HTTP). Полезные метрики:
+
+- `tenders_parsed_today` — успешно синхронизированные тендеры
+- `documents_downloaded_today` — скачанные документы
+- `parser_errors_today` — ошибки парсера (Varnish 5xx, timeouts)
+- `varnish_empty_responses` — пустые ответы (Varnish bug)
+- `rate_limit_429s` — нас на rate-limit (если > 0 — снизить concurrency)
+- `bridge_aliases_resolved` — успешные резолвы orgId/orgCode через customer_id_aliases
+- `last_html_sync` — unix timestamp последнего цикла
+- `smoke_test_passes` / `smoke_test_failures` — golden-set
+- `smoke_test_last_run` — unix timestamp последнего smoke test
+
+---
+
+## 📞 Контакты
+
+- Вопросы по matcher / h025ai-10: см. SPEC.md §8.2 (verbatim JSON schema)
+- Вопросы по DaMIA / h025ai-15: см. `research/ftp-xml-recon.md` (DaMIA-ФНС alternative section)
+- Вопросы по HTML-парсеру / h025ai-8: см. `research/zakupki-html-recon.md` (5 URL-паттернов)
+- Вопросы по anti-outlier: см. SPEC.md §8.2 (Habr bug case) + `app/services/matcher.py:apply_anti_outlier`
+- Вопросы по strict-mode: см. `app/services/document_parser.py:parse_financial_strict`
+
+**Reviewer:** 💻 Разработчик (subagent)
+**Date:** 2026-06-23
+**Status:** ✅ **Ready for DevOps deployment.**
