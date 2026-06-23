@@ -7,6 +7,14 @@ from pydantic import BaseModel
 from sqlalchemy import desc, func, select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
+
+def _safe_str(value):
+    """Convert list to string."""
+    if isinstance(value, list):
+        return ", ".join(str(v) for v in value)
+    return str(value) if value else None
+
+
 from ..database import get_db
 from ..models import Document, Tender, User
 from ..routers.auth import get_current_user
@@ -202,7 +210,7 @@ async def get_tender(
             if analysis:
                 tender.ai_analysis = analysis.get("analysis")
                 tender.ai_relevance = analysis.get("relevance")
-                tender.ai_risks = analysis.get("risks")
+                tender.ai_risks = _safe_str(analysis.get("risks"))
                 tender.ai_recommendation = analysis.get("recommendation")
                 tender.ai_analyzed_at = func.now()
                 db.add(tender)

@@ -287,50 +287,6 @@ const Dashboard = (() => {
     }
   }
 
-  // Legacy
-  async function loadDashboardHome() { await initDashboardHome(); }
-    const container = document.getElementById('recent-tenders');
-    if (!container) return;
-
-    if (tenders.length === 0) {
-      container.innerHTML = '<div class="empty-state"><p>Новых тендеров пока нет</p></div>';
-      return;
-    }
-
-    container.innerHTML = tenders.map(t => `
-      <div class="tender-item card" onclick="location.href='/dashboard/tenders.html?id=${t.id}'">
-        <div class="tender-info">
-          <div class="tender-title">${escapeHtml(t.title)}</div>
-          <div class="tender-meta">
-            <span>🏢 ${escapeHtml(t.customer || '—')}</span>
-            <span>💰 ${formatPrice(t.price)}</span>
-            <span>📅 ${formatDate(t.deadline)}</span>
-            ${t.law_type ? `<span class="badge badge-purple">${escapeHtml(t.law_type)}</span>` : ''}
-          </div>
-        </div>
-        ${t.ai_relevance ? `<span class="badge badge-blue">AI: ${t.ai_relevance}/10</span>` : ''}
-      </div>
-    `).join('');
-  }
-
-  function renderRecentMatches(matches) {
-    const container = document.getElementById('recent-matches');
-    if (!container) return;
-
-    if (matches.length === 0) {
-      container.innerHTML = '<div class="empty-state"><p>Нет подобранных тендеров</p></div>';
-      return;
-    }
-
-    container.innerHTML = matches.map(m => `
-      <div class="card mb-1 flex-between" onclick="location.href='/dashboard/tenders.html?id=${m.tender_id}'" style="cursor:pointer">
-        <div>
-          <strong>${escapeHtml(m.tender_title)}</strong>
-        </div>
-        <span class="badge badge-green">${m.relevance_score || 0}%</span>
-      </div>
-    `).join('');
-  }
 
   // ── Subscriptions Manager ──────────────────────────────────
 

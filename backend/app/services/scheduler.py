@@ -8,6 +8,13 @@ from ..config import settings
 
 logger = logging.getLogger(__name__)
 
+
+def _safe_str(value):
+    """Convert list to comma-separated string, or return as-is."""
+    if isinstance(value, list):
+        return ", ".join(str(v) for v in value)
+    return str(value) if value else None
+
 scheduler = AsyncIOScheduler()
 
 
@@ -59,7 +66,7 @@ async def _parse_and_analyze():
                         if analysis:
                             tender.ai_analysis = analysis.get("analysis")
                             tender.ai_relevance = analysis.get("relevance")
-                            tender.ai_risks = analysis.get("risks")
+                            tender.ai_risks = _safe_str(analysis.get("risks"))
                             tender.ai_recommendation = analysis.get("recommendation")
                             tender.ai_analyzed_at = __import__("datetime").datetime.utcnow()
                             db.add(tender)
