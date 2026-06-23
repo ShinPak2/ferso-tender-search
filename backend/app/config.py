@@ -46,6 +46,24 @@ class Settings:
         default_factory=lambda: os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
     )
 
+    # DaMIA API-ФНС (h025ai-15)
+    DAMIA_API_KEY: str = field(
+        default_factory=lambda: os.getenv("DAMIA_API_KEY", "")
+    )
+    DAMIA_BASE_URL: str = field(
+        default_factory=lambda: os.getenv("DAMIA_BASE_URL", "https://damia.ru/apifns")
+    )
+
+    # Cache (Redis)
+    REDIS_URL: str = field(
+        default_factory=lambda: os.getenv("REDIS_URL", "")
+    )
+
+    # Embeddings (dedup)
+    USE_LOCAL_EMBEDDINGS: str = field(
+        default_factory=lambda: os.getenv("USE_LOCAL_EMBEDDINGS", "1")
+    )
+
     # Parser
     PARSER_INTERVAL_MINUTES: int = 60
     ZAKUPKI_BASE_URL: str = "https://zakupki.gov.ru"
