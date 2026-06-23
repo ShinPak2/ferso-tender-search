@@ -71,7 +71,7 @@ const Dashboard = (() => {
 
   // ── Dashboard Home ─────────────────────────────────────────
 
-  async function loadDashboardHome() {
+  async function initDashboardHome() {
     if (!requireAuth()) return;
     const user = API.getUser();
 
@@ -724,7 +724,6 @@ const Dashboard = (() => {
     formatDate,
     escapeHtml,
     initDashboardHome,
-    loadDashboardHome,
     addKeyword,
     removeKeyword,
     doSearch,
