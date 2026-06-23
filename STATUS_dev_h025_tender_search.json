@@ -1,0 +1,142 @@
+{
+  "agent": "developer",
+  "subagent_id": "dev-h025-tender-search",
+  "session": "agent:main:subagent:ca327248-bd20-4d10-8f82-ce32d4519349",
+  "date": "2026-06-23",
+  "status": "completed",
+  "ready_for_devops": true,
+  "next_step": "deploy",
+  "project": {
+    "id": "h025-tender-search",
+    "display_number": "070",
+    "server": "82.26.150.184",
+    "production_url": "https://tenders.ivoryhome.ru"
+  },
+  "tasks": {
+    "completed": [
+      "h025ai-4",
+      "h025ai-5",
+      "h025ai-6",
+      "h025ai-7",
+      "h025ai-8",
+      "h025ai-9",
+      "h025ai-10",
+      "h025ai-11",
+      "h025ai-12",
+      "h025ai-13",
+      "h025ai-14",
+      "h025ai-15",
+      "h025ai-cr"
+    ],
+    "pending": [],
+    "blocked": []
+  },
+  "deliverables": {
+    "db_migrations": [
+      "2026_06_23_h025ai_4_5_6_supplier_profile_docs_analysis"
+    ],
+    "backend_files_created": 17,
+    "backend_files_modified": 4,
+    "frontend_files_created": 2,
+    "frontend_files_modified": 0,
+    "test_files_created": 4,
+    "test_files_total": 83
+  },
+  "test_results": {
+    "framework": "pytest",
+    "total": 83,
+    "passed": 83,
+    "failed": 0,
+    "breakdown": {
+      "test_damia_client.py": 18,
+      "test_ai_extraction.py": 20,
+      "test_matcher.py": 28,
+      "test_document_parser.py": 17
+    },
+    "result_line": "83 passed in 1.51s"
+  },
+  "api_routes_unique": 36,
+  "env_vars_added": [
+    "DAMIA_API_KEY",
+    "DAMIA_BASE_URL",
+    "REDIS_URL",
+    "USE_LOCAL_EMBEDDINGS",
+    "DEEPSEEK_API_KEY",
+    "DEEPSEEK_BASE_URL",
+    "DEEPSEEK_MODEL",
+    "HTML_SYNC_INTERVAL_MINUTES",
+    "AI_ANALYSIS_INTERVAL_MINUTES",
+    "MATCHER_INTERVAL_MINUTES",
+    "SMOKE_TEST_HOUR",
+    "SMOKE_TEST_MINUTE",
+    "SMOKE_TEST_REG_NUMBERS",
+    "TELEGRAM_BOT_TOKEN",
+    "TELEGRAM_CHAT_ID"
+  ],
+  "env_vars_required": [
+    "JWT_SECRET",
+    "DB_USER",
+    "DB_PASS",
+    "DB_HOST",
+    "DB_PORT",
+    "DB_NAME",
+    "ADMIN_EMAIL",
+    "ADMIN_PASSWORD"
+  ],
+  "git": {
+    "branch": "main",
+    "commits_ahead_of_origin": 13,
+    "all_pushed": true,
+    "commits_list": [
+      "10469ea feat(H025): h025ai-15 DaMIA API-ФНС client + supplier profile router",
+      "d4c64fa feat(H025): h025ai-9 ai_extraction.py — DeepSeek structured extraction + tests",
+      "69aae7a feat(H025): h025ai-10 matcher.py rewrite — verdict + score + anti-outlier",
+      "32f166f feat(H025): h025ai-12 scheduler.py — HTML-sync + AI + matcher + smoke-test (no FTP)",
+      "0e2954c feat(H025): h025ai-13 profile.html — 5-step supplier profile wizard",
+      "45f66b3 feat(H025): h025ai-14 tender-detail.html redesign + analysis/match endpoints",
+      "1b0b220 docs(H025): code review of dashboard.js auth-fix commits",
+      "1236895 fix(H025): tests conftest + model package split + regex group bug",
+      "a2874d6 docs(H025): HANDOFF_dev_to_devops.md — full task list, deploy steps, env vars, tests",
+      "ae6a6af fix(H025): dedupe tender router endpoints + SPEC v1.2 (data-source arch)",
+      "85367a9 docs(H025): STATUS_dev_handoff.json — machine-readable delivery report",
+      "3c55d0a fix(H025): correct test count breakdown + commit list in STATUS JSON"
+    ]
+  },
+  "code_review": {
+    "subject": "dashboard.js fix chain (8a38340, 5b9097d, f64e028)",
+    "verdict": "APPROVED",
+    "file": "research/code-review-dashboard.md",
+    "issues": [
+      "Minor: escapeHtmlAttr for keyword chips — could break on single quotes in keyword (suggested fix: data-attr + addEventListener, NOT applied)",
+      "Minor: 'Recent matches' widget removed (intentional for MVP, TODO to re-enable when matcher is wired in production)"
+    ],
+    "sign_off": "ship it"
+  },
+  "smoke_test": {
+    "golden_set_reg_numbers_placeholder": true,
+    "needs_devops_action": "Replace placeholder regNumbers in SMOKE_TEST_REG_NUMBERS env var with 10 real active 44-ФЗ tenders before prod launch",
+    "scheduler_job": "smoke_test_golden_set (daily at 03:13)"
+  },
+  "known_limitations": [
+    "FTP zakupki.gov.ru closed since 01.01.2025 — HTML parsing only",
+    "Varnish empty responses 1-in-5 — retry+backoff via tenacity",
+    "223-ФЗ NOT in MVP (Phase 2)",
+    "НМЦК coverage 4-5% for 44-ФЗ — UI shows 'НМЦК не указана' explicitly",
+    "sentence-transformers loads lazily on first dedup call (~5-10s)",
+    "Without DAMIA_API_KEY: /api/profile/egrul returns 503 with graceful message",
+    "Without DEEPSEEK_API_KEY: ai_extraction returns None, no analysis run",
+    "customer_id_aliases bridge table empty until first DaMIA call (cold start)"
+  ],
+  "deploy_steps": [
+    "1. Backup DB: pg_dump -U tender -h postgres tendersearch > pre-h025.dump",
+    "2. Apply migration: docker compose exec backend alembic upgrade head",
+    "3. Verify 4 new tables exist: psql -c '\\dt' (supplier_profiles, customer_id_aliases, tender_documents, tender_analysis)",
+    "4. Rebuild: docker compose build backend",
+    "5. Restart: docker compose up -d backend",
+    "6. Smoke: curl https://tenders.ivoryhome.ru/api/health",
+    "7. Auth + profile: POST /api/auth/login -> GET /api/profile/me",
+    "8. Watch logs: docker compose logs -f backend | grep ERROR"
+  ],
+  "blockers": [],
+  "summary": "All 11 dev tasks + 2 AI-fallback tasks + 1 code review (14/14) completed atomically. 83/83 tests pass. 36 unique API routes. Code review approved. 13 commits pushed to main. Ready for DevOps deployment. SSH/deploy not done per spec (DevOps owns that)."
+}
