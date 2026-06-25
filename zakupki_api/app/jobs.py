@@ -14,7 +14,6 @@ from sqlalchemy.orm import Session
 from xml.etree import ElementTree as ET
 
 from app.models import (
-    FILE_STORAGE_DIR,
     ParseTask,
     Purchase,
     PurchaseDocument,
