@@ -19,6 +19,53 @@ services:
     networks:
       - tendersearch
 
+
+  zakupki-postgres:
+    image: postgres:16-alpine
+    container_name: h025-zakupki-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: zakupki
+      POSTGRES_PASSWORD: zakupki_secret
+      POSTGRES_DB: zakupki_cache
+    volumes:
+      - zakupki_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zakupki -d zakupki_cache"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tendersearch
+
+  zakupki-api:
+    build:
+      context: ./zakupki_api
+      dockerfile: Dockerfile
+    container_name: h025-zakupki-api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://zakupki:zakupki_secret@zakupki-postgres:5432/zakupki_cache
+      FILE_STORAGE_DIR: /data/files
+      INTERNAL_API_TOKEN: ${ZAKUPKI_INTERNAL_API_TOKEN:-zakupki-internal-secret-change-in-prod}
+      ZAKUPKI_SYNC_ENABLED: ${ZAKUPKI_SYNC_ENABLED:-true}
+      ZAKUPKI_SYNC_HOUR: ${ZAKUPKI_SYNC_HOUR:-2}
+      ZAKUPKI_SYNC_MINUTE: ${ZAKUPKI_SYNC_MINUTE:-15}
+      ZAKUPKI_SEARCH_QUERY: ${ZAKUPKI_SEARCH_QUERY:-стройка}
+      ZAKUPKI_RECORDS_PER_PAGE: ${ZAKUPKI_RECORDS_PER_PAGE:-_50}
+      ZAKUPKI_INITIAL_MAX_PAGES: ${ZAKUPKI_INITIAL_MAX_PAGES:-20}
+      ZAKUPKI_REQUEST_DELAY_SECONDS: ${ZAKUPKI_REQUEST_DELAY_SECONDS:-1.2}
+    volumes:
+      - zakupki_files:/data/files
+    depends_on:
+      zakupki-postgres:
+        condition: service_healthy
+    networks:
+      - tendersearch
+    ports:
+      - "127.0.0.1:18080:8000"
+
+
   backend:
     build:
       context: ./backend
@@ -63,6 +110,8 @@ services:
 
 volumes:
   postgres_data:
+  zakupki_postgres_data:
+  zakupki_files:
 
 networks:
   tendersearch:
