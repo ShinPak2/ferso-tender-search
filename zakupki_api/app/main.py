@@ -23,8 +23,17 @@ from app.models import (
     get_db,
     init_db,
     utc_now,
+    DocumentMarkdown,
+    MarkdownTask,
 )
 
+from app.to_markdown import (
+    MARKDOWN_BATCH_SIZE,
+    MARKDOWN_ENQUEUE_LIMIT,
+    enqueue_missing_markdown_tasks,
+    enqueue_then_process_markdown,
+    process_markdown_queue,
+)
 
 INTERNAL_API_TOKEN = os.getenv("INTERNAL_API_TOKEN", "zakupki-internal-secret-change-in-prod")
 
@@ -33,6 +42,9 @@ DISCOVERY_INTERVAL_MINUTES = int(os.getenv("ZAKUPKI_DISCOVERY_INTERVAL_MINUTES",
 
 PARSE_QUEUE_ENABLED = os.getenv("ZAKUPKI_PARSE_QUEUE_ENABLED", "true").lower() == "true"
 PARSE_QUEUE_INTERVAL_MINUTES = int(os.getenv("ZAKUPKI_PARSE_QUEUE_INTERVAL_MINUTES", "10"))
+
+MARKDOWN_QUEUE_ENABLED = os.getenv("MARKDOWN_QUEUE_ENABLED", "true").lower() == "true"
+MARKDOWN_QUEUE_INTERVAL_MINUTES = int(os.getenv("MARKDOWN_QUEUE_INTERVAL_MINUTES", "15"))
 
 NIGHTLY_FULL_JOB_ENABLED = os.getenv("ZAKUPKI_NIGHTLY_FULL_JOB_ENABLED", "true").lower() == "true"
 NIGHTLY_FULL_JOB_HOUR = int(os.getenv("ZAKUPKI_NIGHTLY_FULL_JOB_HOUR", "2"))
@@ -105,6 +117,14 @@ def purchase_to_dict(purchase: Purchase, include_documents: bool = False) -> dic
                 "download_error": doc.download_error,
                 "downloaded_at": doc.downloaded_at.isoformat() if doc.downloaded_at else None,
                 "internal_download_url": f"/api/v1/documents/{doc.id}/download",
+                "markdown": {
+                    "exists": doc.markdown is not None and doc.markdown.status == "converted",
+                    "status": doc.markdown.status if doc.markdown else None,
+                    "markdown_size_bytes": doc.markdown.markdown_size_bytes if doc.markdown else None,
+                    "markdown_sha256": doc.markdown.markdown_sha256 if doc.markdown else None,
+                    "internal_markdown_url": f"/api/v1/documents/{doc.id}/markdown" if doc.markdown and doc.markdown.status == "converted" else None,
+                    "error_text": doc.markdown.error_text if doc.markdown else None,
+                },
             }
             for doc in purchase.documents
         ]
@@ -162,7 +182,23 @@ def startup() -> None:
             max_instances=1,
             coalesce=True,
         )
+    if MARKDOWN_QUEUE_ENABLED:
+        scheduler.add_job(
+            lambda: enqueue_then_process_markdown(
+                enqueue_limit=MARKDOWN_ENQUEUE_LIMIT,
+                process_limit=MARKDOWN_BATCH_SIZE,
+            ),
+            trigger="interval",
+            minutes=MARKDOWN_QUEUE_INTERVAL_MINUTES,
+            id="markdown_queue_interval",
+            replace_existing=True,
+            max_instances=1,
+            coalesce=True,
+        )
+    
 
+
+    
     if PARSE_QUEUE_ENABLED:
         scheduler.add_job(
             lambda: process_parse_queue(limit=ZAKUPKI_PARSE_BATCH_SIZE),
@@ -436,4 +472,124 @@ def stats(db: Session = Depends(get_db)) -> dict[str, Any]:
             "ok": xml_ok,
             "http_404": xml_404,
         },
+    }
+
+
+@app.post("/api/v1/markdown/enqueue", dependencies=[Depends(require_token)])
+def enqueue_markdown(
+    limit: int = Query(default=MARKDOWN_ENQUEUE_LIMIT, ge=1, le=10000),
+) -> dict[str, Any]:
+    return enqueue_missing_markdown_tasks(limit=limit)
+
+
+@app.post("/api/v1/markdown/process", dependencies=[Depends(require_token)])
+def run_markdown_processing(
+    limit: int = Query(default=MARKDOWN_BATCH_SIZE, ge=1, le=500),
+) -> dict[str, Any]:
+    return process_markdown_queue(limit=limit)
+
+
+@app.post("/api/v1/markdown/run-once", dependencies=[Depends(require_token)])
+def run_markdown_once(
+    enqueue_limit: int = Query(default=MARKDOWN_ENQUEUE_LIMIT, ge=1, le=10000),
+    process_limit: int = Query(default=MARKDOWN_BATCH_SIZE, ge=1, le=500),
+) -> dict[str, Any]:
+    return enqueue_then_process_markdown(
+        enqueue_limit=enqueue_limit,
+        process_limit=process_limit,
+    )
+
+
+@app.get("/api/v1/markdown/tasks", dependencies=[Depends(require_token)])
+def list_markdown_tasks(
+    status: str = Query(default=""),
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+) -> dict[str, Any]:
+    stmt = select(MarkdownTask).order_by(MarkdownTask.priority.asc(), MarkdownTask.id.asc())
+
+    if status:
+        stmt = stmt.where(MarkdownTask.status == status)
+
+    tasks = db.scalars(stmt.offset(offset).limit(limit)).all()
+
+    return {
+        "items": [
+            {
+                "id": task.id,
+                "document_id": task.document_id,
+                "status": task.status,
+                "priority": task.priority,
+                "attempts": task.attempts,
+                "max_attempts": task.max_attempts,
+                "locked_at": task.locked_at.isoformat() if task.locked_at else None,
+                "last_error": task.last_error,
+                "created_at": task.created_at.isoformat() if task.created_at else None,
+                "updated_at": task.updated_at.isoformat() if task.updated_at else None,
+                "finished_at": task.finished_at.isoformat() if task.finished_at else None,
+            }
+            for task in tasks
+        ],
+        "limit": limit,
+        "offset": offset,
+    }
+
+
+@app.get("/api/v1/documents/{document_id}/markdown", dependencies=[Depends(require_token)])
+def get_document_markdown(
+    document_id: int,
+    db: Session = Depends(get_db),
+) -> FileResponse:
+    markdown = db.scalar(
+        select(DocumentMarkdown).where(DocumentMarkdown.document_id == document_id)
+    )
+
+    if markdown is None:
+        raise HTTPException(status_code=404, detail="Markdown not found")
+
+    if markdown.status != "converted":
+        raise HTTPException(status_code=409, detail=f"Markdown is not converted: {markdown.status}")
+
+    path = Path(markdown.markdown_path)
+
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Markdown file not found on disk")
+
+    return FileResponse(
+        path=path,
+        filename=markdown.markdown_name,
+        media_type="text/markdown; charset=utf-8",
+    )
+
+
+@app.get("/api/v1/documents/{document_id}/markdown/text", dependencies=[Depends(require_token)])
+def get_document_markdown_text(
+    document_id: int,
+    db: Session = Depends(get_db),
+) -> dict[str, Any]:
+    markdown = db.scalar(
+        select(DocumentMarkdown).where(DocumentMarkdown.document_id == document_id)
+    )
+
+    if markdown is None:
+        raise HTTPException(status_code=404, detail="Markdown not found")
+
+    if markdown.status != "converted":
+        raise HTTPException(status_code=409, detail=f"Markdown is not converted: {markdown.status}")
+
+    path = Path(markdown.markdown_path)
+
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Markdown file not found on disk")
+
+    text = path.read_text(encoding="utf-8")
+
+    return {
+        "document_id": document_id,
+        "reg_number": markdown.reg_number,
+        "uid": markdown.uid,
+        "markdown_size_bytes": markdown.markdown_size_bytes,
+        "markdown_sha256": markdown.markdown_sha256,
+        "text": text,
     }
