@@ -133,6 +133,18 @@ class PurchaseDocument(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
     purchase: Mapped[Purchase] = relationship(back_populates="documents")
+    markdown: Mapped["DocumentMarkdown | None"] = relationship(
+        "DocumentMarkdown",
+        primaryjoin="PurchaseDocument.id == DocumentMarkdown.document_id",
+        cascade="all, delete-orphan",
+        uselist=False,
+    )
+
+    markdown_tasks: Mapped[list["MarkdownTask"]] = relationship(
+        "MarkdownTask",
+        primaryjoin="PurchaseDocument.id == MarkdownTask.document_id",
+        cascade="all, delete-orphan",
+    )
 
 
 class ParseTask(Base):
@@ -163,6 +175,78 @@ class ParseTask(Base):
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     purchase: Mapped[Purchase] = relationship(back_populates="tasks")
+
+
+
+class DocumentMarkdown(Base):
+    __tablename__ = "document_markdowns"
+    __table_args__ = (
+        UniqueConstraint("document_id", name="uq_document_markdowns_document_id"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+
+    document_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("purchase_documents.id", ondelete="CASCADE"),
+        index=True,
+    )
+
+    purchase_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("purchases.id", ondelete="CASCADE"),
+        index=True,
+    )
+
+    reg_number: Mapped[str] = mapped_column(String(40), index=True)
+    uid: Mapped[str] = mapped_column(String(100), index=True)
+
+    source_local_path: Mapped[str] = mapped_column(Text)
+    source_sha256: Mapped[str] = mapped_column(String(64), index=True)
+
+    markdown_name: Mapped[str] = mapped_column(Text)
+    markdown_path: Mapped[str] = mapped_column(Text)
+    markdown_sha256: Mapped[str] = mapped_column(String(64), index=True)
+    markdown_size_bytes: Mapped[int] = mapped_column(BigInteger)
+
+    converter: Mapped[str] = mapped_column(String(80), default="markitdown")
+    converter_version: Mapped[str | None] = mapped_column(String(80), nullable=True)
+
+    status: Mapped[str] = mapped_column(String(40), default="converted", index=True)
+    error_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    generated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class MarkdownTask(Base):
+    __tablename__ = "markdown_tasks"
+    __table_args__ = (
+        UniqueConstraint("document_id", name="uq_markdown_tasks_document_id"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+
+    document_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("purchase_documents.id", ondelete="CASCADE"),
+        index=True,
+    )
+
+    status: Mapped[str] = mapped_column(String(40), default="queued", index=True)
+    priority: Mapped[int] = mapped_column(Integer, default=100, index=True)
+
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    max_attempts: Mapped[int] = mapped_column(Integer, default=3)
+
+    locked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
 
 
 class SyncRun(Base):
