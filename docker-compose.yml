@@ -55,8 +55,18 @@ services:
       ZAKUPKI_RECORDS_PER_PAGE: ${ZAKUPKI_RECORDS_PER_PAGE:-_50}
       ZAKUPKI_INITIAL_MAX_PAGES: ${ZAKUPKI_INITIAL_MAX_PAGES:-20}
       ZAKUPKI_REQUEST_DELAY_SECONDS: ${ZAKUPKI_REQUEST_DELAY_SECONDS:-1.2}
+      MARKDOWN_STORAGE_DIR: /data/markdown
+      MARKDOWN_QUEUE_ENABLED: ${MARKDOWN_QUEUE_ENABLED:-true}
+      MARKDOWN_QUEUE_INTERVAL_MINUTES: ${MARKDOWN_QUEUE_INTERVAL_MINUTES:-15}
+      MARKDOWN_BATCH_SIZE: ${MARKDOWN_BATCH_SIZE:-10}
+      MARKDOWN_ENQUEUE_LIMIT: ${MARKDOWN_ENQUEUE_LIMIT:-1000}
+      MARKDOWN_MAX_TASK_ATTEMPTS: ${MARKDOWN_MAX_TASK_ATTEMPTS:-3}
+      MARKDOWN_REQUEST_DELAY_SECONDS: ${MARKDOWN_REQUEST_DELAY_SECONDS:-0.3}
+      MARKDOWN_MAX_FILE_SIZE_MB: ${MARKDOWN_MAX_FILE_SIZE_MB:-200}
+      MARKDOWN_ENABLE_PLUGINS: ${MARKDOWN_ENABLE_PLUGINS:-false}
     volumes:
       - zakupki_files:/data/files
+      - zakupki_markdown:/data/markdown
     depends_on:
       zakupki-postgres:
         condition: service_healthy
@@ -112,6 +122,7 @@ volumes:
   postgres_data:
   zakupki_postgres_data:
   zakupki_files:
+  zakupki_markdown:
 
 networks:
   tendersearch:
